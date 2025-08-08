@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'chaos/chaos_controller.dart';
+import 'screens/chaos_settings_screen.dart';
 
 // Intent classes for keyboard shortcuts
 class BoldIntent extends Intent {
@@ -12,6 +14,14 @@ class ItalicIntent extends Intent {
 
 class SelectAllIntent extends Intent {
   const SelectAllIntent();
+}
+
+class ChaosToggleIntent extends Intent {
+  const ChaosToggleIntent();
+}
+
+class SaveIntent extends Intent {
+  const SaveIntent();
 }
 
 // Rich text formatting system - replica of Windows Notepad
@@ -90,6 +100,10 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   bool _currentBold = false;
   bool _currentItalic = false;
 
+  // Chaos system - permanently active
+  ChaosController? _chaosController;
+  bool _isChaosEnabled = true; // Always enabled
+
   final String _currentHeading = 'Normal';
   int _characterCount = 0;
   int _lineNumber = 1;
@@ -101,10 +115,69 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     _controller.addListener(_updateStats);
     // Initialize with empty document
     _segments = [TextSegment(content: '')];
+
+    // Initialize chaos controller
+    _initializeChaosController();
+  }
+
+  void _initializeChaosController() {
+    _chaosController = ChaosController(
+      textController: _controller,
+      onTextChanged: _handleChaosTextChange,
+      onSelectionChanged: _handleChaosSelectionChange,
+      onSave: _handleChaosSave,
+    );
+    // Start chaos immediately - it's permanently active
+    _chaosController?.startChaos();
+  }
+
+  void _handleChaosTextChange(String newText) {
+    // Update segments when chaos modifies text
+    _segments = [TextSegment(content: newText)];
+    _updateStats();
+  }
+
+  void _handleChaosSelectionChange(TextSelection selection) {
+    // Handle selection changes from chaos
+    setState(() {});
+  }
+
+  void _handleChaosSave() {
+    // Handle save action (could trigger file save dialog)
+    // For now, just update stats
+    _updateStats();
+  }
+
+  void _toggleChaos(bool enabled) {
+    // Chaos mode is permanently active - this function does nothing
+    // but we keep it for settings screen compatibility
+    // setState(() {
+    //   _isChaosEnabled = enabled;
+    // });
+
+    // Chaos always remains active
+    // if (enabled) {
+    //   _chaosController?.startChaos();
+    // } else {
+    //   _chaosController?.stopChaos();
+    // }
+  }
+
+  void _openSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChaosSettingsScreen(
+          isChaosEnabled: _isChaosEnabled,
+          onChaosToggle: _toggleChaos,
+        ),
+      ),
+    );
   }
 
   @override
   void dispose() {
+    _chaosController?.dispose();
     _controller.removeListener(_updateStats);
     _controller.dispose();
     _focusNode.dispose();
@@ -292,6 +365,16 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     );
   }
 
+  void _handleSave() {
+    // Use chaos controller's save handler if chaos is enabled
+    if (_isChaosEnabled && _chaosController != null) {
+      _chaosController!.handleSave();
+    } else {
+      // Normal save logic would go here
+      _handleChaosSave();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Shortcuts(
@@ -302,6 +385,8 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             const ItalicIntent(),
         LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyA):
             const SelectAllIntent(),
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyS):
+            const SaveIntent(),
       },
       child: Actions(
         actions: <Type, Action<Intent>>{
@@ -320,6 +405,12 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
           SelectAllIntent: CallbackAction<SelectAllIntent>(
             onInvoke: (SelectAllIntent intent) {
               _selectAll();
+              return null;
+            },
+          ),
+          SaveIntent: CallbackAction<SaveIntent>(
+            onInvoke: (SaveIntent intent) {
+              _handleSave();
               return null;
             },
           ),
@@ -401,14 +492,16 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () {},
+                            onTap: _openSettings,
                             borderRadius: BorderRadius.circular(6),
                             child: Padding(
                               padding: const EdgeInsets.all(4),
                               child: Icon(
                                 Icons.settings,
                                 size: 14,
-                                color: Colors.grey.shade400,
+                                color: _isChaosEnabled
+                                    ? Colors.red.shade400
+                                    : Colors.grey.shade400,
                               ),
                             ),
                           ),
@@ -523,6 +616,39 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                         ),
                       ),
                       const Spacer(),
+                      // Chaos Mode Indicator
+                      if (_isChaosEnabled) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade100,
+                            borderRadius: BorderRadius.circular(3),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.warning_amber_rounded,
+                                size: 10,
+                                color: Colors.red.shade600,
+                              ),
+                              const SizedBox(width: 2),
+                              Text(
+                                'CHAOS',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.red.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                      ],
                       const Text(
                         'Plain text',
                         style: TextStyle(fontSize: 11, color: Colors.black54),
