@@ -266,10 +266,10 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.light,
         colorScheme: const ColorScheme.light(
-          primary: Colors.blue,
+          primary: Colors.black87,
           surface: Colors.white,
         ),
-        scaffoldBackgroundColor: Colors.white,
+        scaffoldBackgroundColor: Colors.grey.shade50,
         fontFamily: 'Segoe UI',
       ),
       home: const ModernNotepadPage(),
@@ -556,15 +556,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-          side: BorderSide(color: Colors.grey.shade300, width: 1),
+          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(color: Colors.grey.shade300, width: 0.5),
         ),
         contentPadding: const EdgeInsets.all(16),
         titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         title: Row(
           children: [
-            Icon(Icons.linear_scale, color: Colors.blue, size: 16),
+            Icon(Icons.linear_scale, color: Colors.black87, size: 16),
             const SizedBox(width: 6),
             Text(
               'Go to Line',
@@ -572,7 +572,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 fontFamily: 'Segoe UI',
-                color: Colors.grey.shade800,
+                color: Colors.black87,
               ),
             ),
           ],
@@ -584,11 +584,11 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
               hintText: 'Enter line number',
               hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(4),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: Colors.blue, width: 2),
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(color: Colors.black87, width: 1),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 12,
@@ -665,15 +665,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-          side: BorderSide(color: Colors.grey.shade300, width: 1),
+          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(color: Colors.grey.shade300, width: 0.5),
         ),
         contentPadding: const EdgeInsets.all(16),
         titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         title: Row(
           children: [
-            Icon(Icons.search, color: Colors.blue, size: 16),
+            Icon(Icons.search, color: Colors.black87, size: 16),
             const SizedBox(width: 6),
             Text(
               'Find',
@@ -681,7 +681,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 fontFamily: 'Segoe UI',
-                color: Colors.grey.shade800,
+                color: Colors.black87,
               ),
             ),
           ],
@@ -694,12 +694,12 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
               hintText: 'Enter text to find...',
               hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(4),
                 borderSide: BorderSide(color: Colors.grey.shade300),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: Colors.blue, width: 2),
+                borderRadius: BorderRadius.circular(4),
+                borderSide: BorderSide(color: Colors.black87, width: 1),
               ),
               prefixIcon: Icon(
                 Icons.search,
@@ -732,12 +732,19 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             ),
           ),
           ElevatedButton.icon(
-            icon: const Icon(Icons.search_outlined, size: 14),
+            icon: Icon(
+              Icons.search_outlined,
+              size: 14,
+              color: Colors.grey.shade700,
+            ),
             label: const Text('Find All'),
             style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black87,
+              side: BorderSide(color: Colors.grey.shade300, width: 0.5),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
-              elevation: 2,
+              elevation: 1,
             ),
             onPressed: () {
               _performSearch();
@@ -745,14 +752,14 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             },
           ),
           ElevatedButton.icon(
-            icon: const Icon(Icons.arrow_forward, size: 14),
+            icon: Icon(Icons.arrow_forward, size: 14, color: Colors.white),
             label: const Text('Find Next'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
+              backgroundColor: Colors.black87,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
-              elevation: 2,
+              elevation: 1,
             ),
             onPressed: () {
               _performSearch();
@@ -771,15 +778,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(6),
-          side: BorderSide(color: Colors.grey.shade300, width: 1),
+          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(color: Colors.grey.shade300, width: 0.5),
         ),
         contentPadding: const EdgeInsets.all(16),
         titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         title: Row(
           children: [
-            Icon(Icons.find_replace, color: Colors.blue, size: 16),
+            Icon(Icons.find_replace, color: Colors.black87, size: 16),
             const SizedBox(width: 6),
             Text(
               'Find and Replace',
@@ -787,7 +794,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 fontFamily: 'Segoe UI',
-                color: Colors.grey.shade800,
+                color: Colors.black87,
               ),
             ),
           ],
@@ -806,11 +813,11 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                     color: Colors.grey.shade600,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: Colors.blue, width: 2),
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(color: Colors.black87, width: 1),
                   ),
                   prefixIcon: Icon(
                     Icons.search,
@@ -834,11 +841,11 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                     color: Colors.grey.shade600,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: Colors.blue, width: 2),
+                    borderRadius: BorderRadius.circular(4),
+                    borderSide: BorderSide(color: Colors.black87, width: 1),
                   ),
                   prefixIcon: Icon(
                     Icons.edit,
@@ -871,12 +878,19 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             ),
           ),
           ElevatedButton.icon(
-            icon: const Icon(Icons.search_outlined, size: 14),
+            icon: Icon(
+              Icons.search_outlined,
+              size: 14,
+              color: Colors.grey.shade700,
+            ),
             label: const Text('Find All'),
             style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black87,
+              side: BorderSide(color: Colors.grey.shade300, width: 0.5),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
-              elevation: 2,
+              elevation: 1,
             ),
             onPressed: () {
               _performSearch();
@@ -884,14 +898,14 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             },
           ),
           ElevatedButton.icon(
-            icon: const Icon(Icons.swap_horiz, size: 14),
+            icon: Icon(Icons.swap_horiz, size: 14, color: Colors.white),
             label: const Text('Replace'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
+              backgroundColor: Colors.grey.shade700,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
-              elevation: 2,
+              elevation: 1,
             ),
             onPressed: () {
               _replaceSelected();
@@ -899,14 +913,14 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             },
           ),
           ElevatedButton.icon(
-            icon: const Icon(Icons.swap_vert, size: 14),
+            icon: Icon(Icons.swap_vert, size: 14, color: Colors.white),
             label: const Text('Replace All'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: Colors.black87,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
-              elevation: 2,
+              elevation: 1,
             ),
             onPressed: () {
               _replaceAll();
@@ -1238,15 +1252,18 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         child: Focus(
           autofocus: true,
           child: Scaffold(
-            backgroundColor: Colors.white,
+            backgroundColor: Colors.grey.shade50,
             body: Column(
               children: [
                 Container(
                   height: 36,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border(
-                      bottom: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
+                      bottom: BorderSide(
+                        color: Colors.grey.shade200,
+                        width: 0.5,
+                      ),
                     ),
                   ),
                   child: Row(
@@ -1262,7 +1279,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
                             return Container(
                               margin: const EdgeInsets.symmetric(
-                                horizontal: 3,
+                                horizontal: 2,
                                 vertical: 4,
                               ),
                               padding: const EdgeInsets.symmetric(
@@ -1271,21 +1288,21 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                               ),
                               decoration: BoxDecoration(
                                 color: isActive
-                                    ? Colors.blue.shade50
-                                    : Colors.pink.shade50,
-                                borderRadius: BorderRadius.circular(8),
+                                    ? Colors.white
+                                    : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(4),
                                 border: Border.all(
                                   color: isActive
-                                      ? Colors.blue.shade200
-                                      : Colors.pink.shade100,
-                                  width: 0.8,
+                                      ? Colors.grey.shade300
+                                      : Colors.grey.shade200,
+                                  width: 0.5,
                                 ),
                               ),
                               child: Material(
                                 color: Colors.transparent,
                                 child: InkWell(
                                   onTap: () => _switchToTab(index),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(4),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
@@ -1297,9 +1314,9 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                           fontSize: 10,
                                           fontWeight: isActive
                                               ? FontWeight.w600
-                                              : FontWeight.w500,
+                                              : FontWeight.w400,
                                           color: isActive
-                                              ? Colors.blue.shade700
+                                              ? Colors.black87
                                               : Colors.grey.shade600,
                                         ),
                                       ),
@@ -1315,7 +1332,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                             Icons.close,
                                             size: 10,
                                             color: isActive
-                                                ? Colors.blue.shade400
+                                                ? Colors.grey.shade600
                                                 : Colors.grey.shade400,
                                           ),
                                         ),
@@ -1394,13 +1411,13 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                             popupMenuTheme: PopupMenuThemeData(
                               color: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(4),
                                 side: BorderSide(
                                   color: Colors.grey.shade300,
-                                  width: 1,
+                                  width: 0.5,
                                 ),
                               ),
-                              elevation: 4,
+                              elevation: 2,
                             ),
                           ),
                           child: PopupMenuButton<String>(
@@ -1415,7 +1432,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   Icon(
                                     Icons.folder_outlined,
                                     size: 12,
-                                    color: Colors.grey.shade600,
+                                    color: Colors.black87,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
@@ -1423,7 +1440,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500,
-                                      color: Colors.grey.shade600,
+                                      color: Colors.black87,
                                     ),
                                   ),
                                 ],
@@ -1458,14 +1475,18 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'new',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.note_add, size: 14),
+                                    Icon(
+                                      Icons.note_add,
+                                      size: 14,
+                                      color: Colors.black87,
+                                    ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'New (Ctrl+N)',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w400,
-                                        color: Colors.grey.shade800,
+                                        color: Colors.black87,
                                         fontFamily: 'Segoe UI',
                                       ),
                                     ),
@@ -1481,14 +1502,18 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'open',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.folder_open, size: 14),
+                                    Icon(
+                                      Icons.folder_open,
+                                      size: 14,
+                                      color: Colors.black87,
+                                    ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Open (Ctrl+O)',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w400,
-                                        color: Colors.grey.shade800,
+                                        color: Colors.black87,
                                         fontFamily: 'Segoe UI',
                                       ),
                                     ),
@@ -1504,14 +1529,18 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'save',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.save, size: 14),
+                                    Icon(
+                                      Icons.save,
+                                      size: 14,
+                                      color: Colors.black87,
+                                    ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Save (Ctrl+S)',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w400,
-                                        color: Colors.grey.shade800,
+                                        color: Colors.black87,
                                         fontFamily: 'Segoe UI',
                                       ),
                                     ),
@@ -1527,14 +1556,18 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'save_as',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.save_as, size: 14),
+                                    Icon(
+                                      Icons.save_as,
+                                      size: 14,
+                                      color: Colors.black87,
+                                    ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Save As (Ctrl+Shift+S)',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w400,
-                                        color: Colors.grey.shade800,
+                                        color: Colors.black87,
                                         fontFamily: 'Segoe UI',
                                       ),
                                     ),
@@ -1550,14 +1583,18 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'exit',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.exit_to_app, size: 14),
+                                    Icon(
+                                      Icons.exit_to_app,
+                                      size: 14,
+                                      color: Colors.black87,
+                                    ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Exit',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w400,
-                                        color: Colors.grey.shade800,
+                                        color: Colors.black87,
                                         fontFamily: 'Segoe UI',
                                       ),
                                     ),
@@ -1579,15 +1616,13 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                             popupMenuTheme: PopupMenuThemeData(
                               color: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(4),
                                 side: BorderSide(
-                                  color: _isChaosEnabled
-                                      ? Colors.red.shade200
-                                      : Colors.grey.shade300,
-                                  width: 1,
+                                  color: Colors.grey.shade300,
+                                  width: 0.5,
                                 ),
                               ),
-                              elevation: 4,
+                              elevation: 2,
                             ),
                           ),
                           child: PopupMenuButton<String>(
@@ -1602,9 +1637,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   Icon(
                                     Icons.edit_outlined,
                                     size: 12,
-                                    color: _isChaosEnabled
-                                        ? Colors.red.shade400
-                                        : Colors.grey.shade600,
+                                    color: Colors.black87,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
@@ -1612,9 +1645,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500,
-                                      color: _isChaosEnabled
-                                          ? Colors.red.shade600
-                                          : Colors.grey.shade600,
+                                      color: Colors.black87,
                                     ),
                                   ),
                                 ],
@@ -1652,14 +1683,18 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'select_all',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.select_all, size: 14),
+                                    Icon(
+                                      Icons.select_all,
+                                      size: 14,
+                                      color: Colors.black87,
+                                    ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Select All (Ctrl+A)',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w400,
-                                        color: Colors.grey.shade800,
+                                        color: Colors.black87,
                                         fontFamily: 'Segoe UI',
                                       ),
                                     ),
@@ -1675,14 +1710,18 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'find',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.search, size: 14),
+                                    Icon(
+                                      Icons.search,
+                                      size: 14,
+                                      color: Colors.black87,
+                                    ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Find (Ctrl+F)',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w400,
-                                        color: Colors.grey.shade800,
+                                        color: Colors.black87,
                                         fontFamily: 'Segoe UI',
                                       ),
                                     ),
@@ -1698,14 +1737,18 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'replace',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.find_replace, size: 14),
+                                    Icon(
+                                      Icons.find_replace,
+                                      size: 14,
+                                      color: Colors.black87,
+                                    ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Replace (Ctrl+H)',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w400,
-                                        color: Colors.grey.shade800,
+                                        color: Colors.black87,
                                         fontFamily: 'Segoe UI',
                                       ),
                                     ),
@@ -1721,14 +1764,18 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'clear',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.clear_all, size: 14),
+                                    Icon(
+                                      Icons.clear_all,
+                                      size: 14,
+                                      color: Colors.black87,
+                                    ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Clear Formatting',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w400,
-                                        color: Colors.grey.shade800,
+                                        color: Colors.black87,
                                         fontFamily: 'Segoe UI',
                                       ),
                                     ),
@@ -1744,14 +1791,18 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'go_to_line',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.linear_scale, size: 14),
+                                    Icon(
+                                      Icons.linear_scale,
+                                      size: 14,
+                                      color: Colors.black87,
+                                    ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Go to Line (Ctrl+G)',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w400,
-                                        color: Colors.grey.shade800,
+                                        color: Colors.black87,
                                         fontFamily: 'Segoe UI',
                                       ),
                                     ),
@@ -1767,14 +1818,18 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'insert_datetime',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.access_time, size: 14),
+                                    Icon(
+                                      Icons.access_time,
+                                      size: 14,
+                                      color: Colors.black87,
+                                    ),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Insert Date/Time (F5)',
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w400,
-                                        color: Colors.grey.shade800,
+                                        color: Colors.black87,
                                         fontFamily: 'Segoe UI',
                                       ),
                                     ),
