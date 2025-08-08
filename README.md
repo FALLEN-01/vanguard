@@ -5,7 +5,7 @@
 
 
 ## Basic Details
-### Team Name: [Vanguard]
+### Team Name: [ScramPad]
 
 
 ### Team Members
