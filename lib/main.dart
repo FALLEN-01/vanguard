@@ -33,10 +33,10 @@ class ChaosManager {
 
   void _executeChaosAction() {
     final actions = [
-      _cursorTeleportation,
-      _randomDeletion,
-      _letterOrWordSwapping,
-      _punctuationInjection,
+      cursorTeleportation,
+      randomDeletion,
+      letterOrWordSwapping,
+      punctuationInjection,
     ];
 
     // Pick a random action
@@ -63,7 +63,7 @@ class ChaosManager {
     textController.text = lines.join('\n');
   }
 
-  void _cursorTeleportation() {
+  void cursorTeleportation() {
     final text = textController.text;
     if (text.isEmpty) return;
 
@@ -71,7 +71,7 @@ class ChaosManager {
     textController.selection = TextSelection.collapsed(offset: newPosition);
   }
 
-  void _randomDeletion() {
+  void randomDeletion() {
     final text = textController.text;
     if (text.isEmpty) return;
 
@@ -92,7 +92,7 @@ class ChaosManager {
     }
   }
 
-  void _letterOrWordSwapping() {
+  void letterOrWordSwapping() {
     final text = textController.text;
     if (text.length < 2) return;
 
@@ -162,7 +162,7 @@ class ChaosManager {
     }
   }
 
-  void _punctuationInjection() {
+  void punctuationInjection() {
     final text = textController.text;
     if (text.isEmpty) return;
 
@@ -173,6 +173,90 @@ class ChaosManager {
     final newText =
         text.substring(0, position) + punctuation + text.substring(position);
     textController.text = newText;
+  }
+}
+
+// TypingSpeedMonitor handles speed-based chaos escalation
+class TypingSpeedMonitor {
+  final Random _random = Random();
+  final VoidCallback showSpeedWarning;
+  final VoidCallback forceShutdown;
+  final VoidCallback triggerSpeedChaos;
+
+  // Typing speed tracking
+  final List<DateTime> _keystrokes = [];
+  Timer? _speedCheckTimer;
+  int _speedViolationCount = 0;
+
+  // Speed thresholds (characters per minute)
+  static const int _warningThreshold = 300; // 5 chars/sec
+  static const int _chaosThreshold = 450; // 7.5 chars/sec
+  static const int _shutdownThreshold = 600; // 10 chars/sec
+
+  TypingSpeedMonitor({
+    required this.showSpeedWarning,
+    required this.forceShutdown,
+    required this.triggerSpeedChaos,
+  });
+
+  void startMonitoring() {
+    _speedCheckTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      _checkTypingSpeed();
+    });
+  }
+
+  void stopMonitoring() {
+    _speedCheckTimer?.cancel();
+    _keystrokes.clear();
+    _speedViolationCount = 0;
+  }
+
+  void recordKeystroke() {
+    final now = DateTime.now();
+    _keystrokes.add(now);
+
+    // Keep only keystrokes from the last 10 seconds
+    _keystrokes.removeWhere((time) => now.difference(time).inSeconds > 10);
+  }
+
+  void _checkTypingSpeed() {
+    if (_keystrokes.isEmpty) return;
+
+    final now = DateTime.now();
+    final recentKeystrokes = _keystrokes
+        .where((time) => now.difference(time).inSeconds <= 6)
+        .length;
+
+    // Calculate characters per minute
+    final cpm = (recentKeystrokes * 10); // Rough approximation
+
+    if (cpm >= _shutdownThreshold) {
+      _speedViolationCount++;
+      if (_speedViolationCount >= 3) {
+        // Ultimate punishment
+        forceShutdown();
+        return;
+      }
+      showSpeedWarning();
+      triggerSpeedChaos();
+    } else if (cpm >= _chaosThreshold) {
+      _speedViolationCount++;
+      triggerSpeedChaos();
+      if (_random.nextDouble() < 0.7) {
+        // 70% chance
+        showSpeedWarning();
+      }
+    } else if (cpm >= _warningThreshold) {
+      if (_random.nextDouble() < 0.4) {
+        // 40% chance
+        showSpeedWarning();
+      }
+    } else {
+      // Reduce violation count if typing slows down
+      if (_speedViolationCount > 0) {
+        _speedViolationCount = (_speedViolationCount - 1).clamp(0, 10);
+      }
+    }
   }
 }
 
@@ -304,6 +388,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   // Chaos mode state
   final bool _isChaosEnabled = false;
   ChaosManager? _chaosManager;
+  TypingSpeedMonitor? _typingSpeedMonitor;
 
   // Computed properties for current tab
   TabData get _currentTab => _tabs[_currentTabIndex];
@@ -335,6 +420,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
     // Initialize ChaosManager with the current controller
     _initializeChaosManager();
+    _initializeTypingSpeedMonitor();
 
     // Set initial cursor position to column 30
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -358,9 +444,177 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     _chaosManager?.startChaos();
   }
 
+  void _initializeTypingSpeedMonitor() {
+    // Stop existing monitor if it exists
+    _typingSpeedMonitor?.stopMonitoring();
+
+    // Initialize TypingSpeedMonitor
+    _typingSpeedMonitor = TypingSpeedMonitor(
+      showSpeedWarning: _showSpeedWarning,
+      forceShutdown: _forceShutdown,
+      triggerSpeedChaos: _triggerSpeedChaos,
+    );
+
+    // Start monitoring
+    _typingSpeedMonitor?.startMonitoring();
+  }
+
+  void _showSpeedWarning() {
+    final messages = [
+      "🐌 SLOW DOWN THERE, SPEEDRACER! 🐌\nThe system can't handle your lightning fingers!",
+      "⚡ TYPING SPEED VIOLATION DETECTED ⚡\nYou're going faster than a caffeinated cheetah!",
+      "🚨 SPEED LIMIT EXCEEDED 🚨\nThis is a text editor, not a racing game!",
+      "🔥 BURNING RUBBER ON THE KEYBOARD? 🔥\nSlow down before you break something!",
+      "⚠️ DANGER: HYPERSONIC TYPING ⚠️\nYour fingers are moving faster than the speed of light!",
+      "🎯 TYPING SPEED: LUDICROUS MODE 🎯\nEven NASA computers are jealous!",
+      "💨 WHOOSH! TOO FAST! 💨\nYou're typing so fast, you're creating a time paradox!",
+    ];
+
+    final randomMessage = messages[Random().nextInt(messages.length)];
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(color: Colors.grey.shade300, width: 0.5),
+        ),
+        contentPadding: const EdgeInsets.all(20),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        title: Row(
+          children: [
+            Icon(Icons.warning, color: Colors.black87, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'SPEED WARNING',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Segoe UI',
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 350,
+          child: Text(
+            randomMessage,
+            style: TextStyle(
+              fontSize: 14,
+              fontFamily: 'Segoe UI',
+              color: Colors.black87,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black87,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
+              elevation: 1,
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('I\'LL SLOW DOWN, I PROMISE!'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _forceShutdown() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(color: Colors.grey.shade300, width: 0.5),
+        ),
+        contentPadding: const EdgeInsets.all(20),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        title: Row(
+          children: [
+            Icon(Icons.power_off, color: Colors.black87, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'SYSTEM OVERLOAD',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Segoe UI',
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 350,
+          child: Text(
+            "💥 CRITICAL ERROR: FINGERS TOO FAST! 💥\n\nYour typing speed has exceeded all known limits of human capability! The application must shut down to prevent a keyboard singularity from forming.\n\nFarewell, speed demon! 👋",
+            style: TextStyle(
+              fontSize: 14,
+              fontFamily: 'Segoe UI',
+              color: Colors.black87,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.black87,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
+              elevation: 1,
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              // Force close app after brief delay
+              Timer(const Duration(seconds: 1), () {
+                SystemNavigator.pop();
+              });
+            },
+            child: const Text('ACCEPT DEFEAT'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _triggerSpeedChaos() {
+    // Trigger additional chaos beyond normal chaos manager
+    // Call chaos manager's methods directly
+    if (_chaosManager != null) {
+      final extraChaosActions = [
+        () => _chaosManager!.cursorTeleportation(),
+        () => _chaosManager!.cursorTeleportation(), // Extra cursor chaos
+        () => _chaosManager!.punctuationInjection(),
+        () => _chaosManager!.randomDeletion(),
+      ];
+
+      final action =
+          extraChaosActions[Random().nextInt(extraChaosActions.length)];
+      action();
+      setState(() {});
+    }
+  }
+
   @override
   void dispose() {
     _chaosManager?.stopChaos();
+    _typingSpeedMonitor?.stopMonitoring();
     _controller.removeListener(_updateStats);
 
     // Dispose all tabs
@@ -404,6 +658,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
       // Reinitialize chaos manager for the new active tab
       _initializeChaosManager();
+      _initializeTypingSpeedMonitor();
 
       // Focus the selected tab
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -477,6 +732,9 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
       _isModified = true;
     });
     _updateStats();
+
+    // Record keystroke for speed monitoring
+    _typingSpeedMonitor?.recordKeystroke();
   }
 
   // File handling methods
