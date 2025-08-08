@@ -99,18 +99,24 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   bool _isBold = false;
   bool _isItalic = false;
   bool _isUnderline = false;
-  String _currentStyle = 'H1';
+  String _currentStyle = 'Normal';
+
+  // Chaos mode state
+  bool _isChaosEnabled = false;
 
   // Status bar
-  int _characterCount = 0;
   int _lineNumber = 1;
   int _columnNumber = 30;
+  int _currentLine = 0;
+  int _currentColumn = 0;
+  int _wordCount = 0;
+  int _charCount = 0;
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(_updateStats);
-    
+
     // Set initial cursor position to column 30
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _controller.text = '';
@@ -134,13 +140,24 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     final selection = _controller.selection;
 
     setState(() {
-      _characterCount = text.length;
+      _charCount = text.length;
+
+      // Calculate word count
+      _wordCount = text.trim().isEmpty
+          ? 0
+          : text.trim().split(RegExp(r'\s+')).length;
+
       if (selection.isValid) {
         final beforeCursor = text.substring(0, selection.baseOffset);
         _lineNumber = '\n'.allMatches(beforeCursor).length + 1;
         _columnNumber = beforeCursor.split('\n').last.length + 1;
+
+        // Update current line/column for status bar
+        _currentLine = _lineNumber - 1; // 0-indexed
+        _currentColumn = _columnNumber - 1; // 0-indexed
       } else {
         _columnNumber = 30;
+        _currentColumn = 30;
       }
     });
   }
@@ -282,7 +299,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   void _jumpToLine(int lineNumber) {
     final text = _controller.text;
     final lines = text.split('\n');
-    
+
     if (lineNumber <= lines.length) {
       int position = 0;
       for (int i = 0; i < lineNumber - 1; i++) {
@@ -294,12 +311,13 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
   void _insertDateTime() {
     final now = DateTime.now();
-    final dateTime = '${now.day}/${now.month}/${now.year} ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
-    
+    final dateTime =
+        '${now.day}/${now.month}/${now.year} ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
+
     final selection = _controller.selection;
     final text = _controller.text;
     final newText = text.replaceRange(selection.start, selection.end, dateTime);
-    
+
     setState(() {
       _controller.text = newText;
       _controller.selection = TextSelection.collapsed(
@@ -317,25 +335,13 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: Colors.grey.shade300,
-            width: 1,
-          ),
+          side: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
         title: const Row(
           children: [
-            Icon(
-              Icons.search,
-              color: Colors.blue,
-              size: 20,
-            ),
+            Icon(Icons.search, color: Colors.blue, size: 20),
             SizedBox(width: 8),
-            Text(
-              'Find',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            Text('Find', style: TextStyle(fontWeight: FontWeight.w600)),
           ],
         ),
         content: TextField(
@@ -344,21 +350,13 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             hintText: 'Enter text to find...',
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: Colors.grey.shade300,
-              ),
+              borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(
-                color: Colors.blue,
-                width: 2,
-              ),
+              borderSide: const BorderSide(color: Colors.blue, width: 2),
             ),
-            prefixIcon: Icon(
-              Icons.search,
-              color: Colors.grey.shade600,
-            ),
+            prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
           ),
           autofocus: true,
           onSubmitted: (_) => _performSearch(),
@@ -401,24 +399,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: Colors.grey.shade300,
-            width: 1,
-          ),
+          side: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
         title: const Row(
           children: [
-            Icon(
-              Icons.find_replace,
-              color: Colors.blue,
-              size: 20,
-            ),
+            Icon(Icons.find_replace, color: Colors.blue, size: 20),
             SizedBox(width: 8),
             Text(
               'Find and Replace',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -434,15 +423,9 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
-                    color: Colors.blue,
-                    width: 2,
-                  ),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
                 ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: Colors.grey.shade600,
-                ),
+                prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
               ),
             ),
             const SizedBox(height: 16),
@@ -455,15 +438,9 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
-                    color: Colors.blue,
-                    width: 2,
-                  ),
+                  borderSide: const BorderSide(color: Colors.blue, width: 2),
                 ),
-                prefixIcon: Icon(
-                  Icons.edit,
-                  color: Colors.grey.shade600,
-                ),
+                prefixIcon: Icon(Icons.edit, color: Colors.grey.shade600),
               ),
             ),
           ],
@@ -736,6 +713,16 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     });
   }
 
+  void _openSettings() {
+    // Toggle chaos mode
+    setState(() {
+      _isChaosEnabled = !_isChaosEnabled;
+    });
+    _showSnackBar(
+      _isChaosEnabled ? 'Chaos Mode Enabled!' : 'Chaos Mode Disabled',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Shortcuts(
@@ -939,7 +926,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                   ),
                   decoration: BoxDecoration(
                     color: _isChaosEnabled
-                        ? Colors.red.shade50.withOpacity(0.3)
+                        ? Colors.red.shade50.withValues(alpha: 0.3)
                         : Colors.white,
                     border: Border(
                       bottom: BorderSide(
@@ -952,8 +939,8 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                     boxShadow: [
                       BoxShadow(
                         color: (_isChaosEnabled
-                            ? Colors.red.withOpacity(0.08)
-                            : Colors.black.withOpacity(0.05)),
+                            ? Colors.red.withValues(alpha: 0.08)
+                            : Colors.black.withValues(alpha: 0.05)),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -966,7 +953,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(6),
                           color: _isChaosEnabled
-                              ? Colors.red.shade50.withOpacity(0.5)
+                              ? Colors.red.shade50.withValues(alpha: 0.5)
                               : Colors.transparent,
                           border: _isChaosEnabled
                               ? Border.all(
@@ -1184,7 +1171,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(6),
                           color: _isChaosEnabled
-                              ? Colors.red.shade50.withOpacity(0.5)
+                              ? Colors.red.shade50.withValues(alpha: 0.5)
                               : Colors.transparent,
                           border: _isChaosEnabled
                               ? Border.all(
@@ -1253,6 +1240,12 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   break;
                                 case 'clear':
                                   _clearFormatting();
+                                  break;
+                                case 'go_to_line':
+                                  _goToLine();
+                                  break;
+                                case 'insert_datetime':
+                                  _insertDateTime();
                                   break;
                               }
                             },
@@ -1363,18 +1356,87 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   ],
                                 ),
                               ),
+                              PopupMenuItem(
+                                value: 'go_to_line',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.linear_scale,
+                                      size: 16,
+                                      color: _isChaosEnabled
+                                          ? Colors.red.shade600
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Go to Line (Ctrl+G)',
+                                      style: TextStyle(
+                                        color: _isChaosEnabled
+                                            ? Colors.red.shade700
+                                            : null,
+                                        fontWeight: _isChaosEnabled
+                                            ? FontWeight.w500
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'insert_datetime',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.access_time,
+                                      size: 16,
+                                      color: _isChaosEnabled
+                                          ? Colors.red.shade600
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Insert Date/Time (F5)',
+                                      style: TextStyle(
+                                        color: _isChaosEnabled
+                                            ? Colors.red.shade700
+                                            : null,
+                                        fontWeight: _isChaosEnabled
+                                            ? FontWeight.w500
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       ),
                       _buildMenuButton('View'),
                       const SizedBox(width: 12),
-                      _buildDropdown(_currentHeading, [
+                      _buildDropdown(_currentStyle, [
                         'Normal',
                         'H1',
                         'H2',
                         'H3',
                       ]),
+                      const SizedBox(width: 12),
+                      // Text formatting buttons
+                      _buildFormatButton(
+                        Icons.format_bold,
+                        _isBold,
+                        _toggleBold,
+                      ),
+                      _buildFormatButton(
+                        Icons.format_italic,
+                        _isItalic,
+                        _toggleItalic,
+                      ),
+                      _buildFormatButton(
+                        Icons.format_underlined,
+                        _isUnderline,
+                        _toggleUnderline,
+                      ),
                       const SizedBox(width: 6),
                       _buildDropdown('•', ['•', '1.', '→']),
                       const SizedBox(width: 12),
@@ -1394,7 +1456,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                           ),
                           borderRadius: BorderRadius.circular(6),
                           color: _isChaosEnabled
-                              ? Colors.red.shade50.withOpacity(0.7)
+                              ? Colors.red.shade50.withValues(alpha: 0.7)
                               : Colors.grey.shade50,
                         ),
                         child: Text(
@@ -1416,7 +1478,37 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                 Expanded(
                   child: Container(
                     color: Colors.white,
-                    child: _buildTextField(),
+                    child: TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      maxLines: null,
+                      expands: true,
+                      onChanged: _handleTextChanged,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontFamily: 'Segoe UI',
+                        color: _isChaosEnabled
+                            ? Colors.red.shade900
+                            : Colors.black,
+                        height: 1.4,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.all(16),
+                        hintText: 'Start typing...',
+                        hintStyle: TextStyle(
+                          color: Color(0xFF999999),
+                          fontSize: 14,
+                        ),
+                      ),
+                      textAlign: TextAlign.start,
+                      textAlignVertical: TextAlignVertical.top,
+                      cursorColor: _isChaosEnabled
+                          ? Colors.red.shade600
+                          : Colors.black,
+                      cursorWidth: _isChaosEnabled ? 2.0 : 1.0,
+                    ),
                   ),
                 ),
 
@@ -1441,7 +1533,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                       ),
                       const SizedBox(width: 16),
                       Text(
-                        '$_characterCount characters',
+                        'Words: $_wordCount  |  Characters: $_charCount',
                         style: const TextStyle(
                           fontSize: 11,
                           color: Colors.black54,
@@ -1511,47 +1603,47 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     );
   }
 
+  Widget _buildDropdown(String value, List<String> items) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300, width: 0.8),
+        borderRadius: BorderRadius.circular(4),
+        color: Colors.grey.shade50,
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isDense: true,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+          items: items.map((String item) {
+            return DropdownMenuItem<String>(value: item, child: Text(item));
+          }).toList(),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              setState(() {
+                if (items.contains('Normal')) {
+                  _currentStyle = newValue; // For style dropdown
+                }
+              });
+            }
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _buildMenuButton(String text) {
     return Container(
       margin: const EdgeInsets.only(right: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(6),
-        color: _isChaosEnabled
-            ? Colors.red.shade50.withOpacity(0.5)
-            : Colors.transparent,
-        border: _isChaosEnabled
-            ? Border.all(color: Colors.red.shade100, width: 0.5)
-            : null,
-      ),
       child: InkWell(
         onTap: text == 'File' ? _showFileMenu : () {},
         borderRadius: BorderRadius.circular(6),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                text == 'View' ? Icons.visibility_outlined : Icons.more_horiz,
-                size: 12,
-                color: _isChaosEnabled
-                    ? Colors.red.shade400
-                    : Colors.grey.shade600,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                text,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: _isChaosEnabled
-                      ? Colors.red.shade600
-                      : Colors.grey.shade600,
-                  fontWeight: _isChaosEnabled
-                      ? FontWeight.w500
-                      : FontWeight.w400,
-                ),
-              ),
-            ],
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Text(
+            text,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
           ),
         ),
       ),
@@ -1606,116 +1698,29 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     );
   }
 
-  Widget _buildDropdown(String value, List<String> items) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: _isChaosEnabled ? Colors.red.shade200 : Colors.grey.shade200,
-          width: 0.8,
-        ),
-        borderRadius: BorderRadius.circular(6),
-        color: _isChaosEnabled
-            ? Colors.red.shade50.withOpacity(0.7)
-            : Colors.grey.shade50,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 11,
-              color: _isChaosEnabled
-                  ? Colors.red.shade600
-                  : Colors.grey.shade600,
-              fontWeight: _isChaosEnabled ? FontWeight.w500 : FontWeight.normal,
-            ),
-          ),
-          const SizedBox(width: 3),
-          Icon(
-            Icons.arrow_drop_down,
-            size: 14,
-            color: _isChaosEnabled ? Colors.red.shade400 : Colors.grey.shade400,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildFormatButton(IconData icon, bool isActive, VoidCallback onTap) {
     return Container(
-      width: 22,
-      height: 22,
-      margin: const EdgeInsets.only(right: 3),
+      width: 24,
+      height: 24,
       decoration: BoxDecoration(
-        color: isActive
-            ? (_isChaosEnabled ? Colors.red.shade100 : Colors.pink.shade50)
-            : Colors.transparent,
+        color: isActive ? Colors.blue.shade100 : Colors.transparent,
         border: Border.all(
-          color: isActive
-              ? (_isChaosEnabled ? Colors.red.shade300 : Colors.pink.shade200)
-              : (_isChaosEnabled ? Colors.red.shade200 : Colors.grey.shade200),
+          color: isActive ? Colors.blue.shade300 : Colors.grey.shade300,
           width: 0.8,
         ),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(4),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(4),
           child: Icon(
             icon,
-            size: 12,
-            color: isActive
-                ? (_isChaosEnabled ? Colors.red.shade600 : Colors.pink.shade400)
-                : (_isChaosEnabled
-                      ? Colors.red.shade400
-                      : Colors.grey.shade500),
+            size: 14,
+            color: isActive ? Colors.blue.shade600 : Colors.grey.shade600,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildTextField() {
-    return Container(
-      decoration: _isChaosEnabled
-          ? BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Colors.white, Colors.red.shade50.withOpacity(0.1)],
-              ),
-            )
-          : null,
-      child: TextField(
-        controller: _controller,
-        focusNode: _focusNode,
-        maxLines: null,
-        expands: true,
-        onChanged: _handleTextChanged,
-        style: TextStyle(
-          fontSize: 14,
-          fontFamily: 'Segoe UI',
-          color: _isChaosEnabled ? Colors.red.shade900 : Colors.black,
-          height: 1.4,
-          fontWeight: FontWeight.w400,
-          fontStyle: FontStyle.normal,
-        ),
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.all(16),
-          hintText: '',
-        ),
-        textAlign: TextAlign.start,
-        textAlignVertical: TextAlignVertical.top,
-        cursorColor: _isChaosEnabled ? Colors.red.shade600 : Colors.black,
-        cursorWidth: _isChaosEnabled ? 2.0 : 1.0,
-        selectionControls: _isChaosEnabled
-            ? MaterialTextSelectionControls()
-            : null,
       ),
     );
   }
