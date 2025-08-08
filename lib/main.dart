@@ -34,7 +34,7 @@ class ChaosManager {
 
   void _resetIdleTimer() {
     _idleTimer?.cancel();
-// Track activity time
+    // Track activity time
 
     // Stop rapid swapping if user becomes active
     if (_isRapidSwapping) {
@@ -50,20 +50,17 @@ class ChaosManager {
   void _startRapidSwapping() {
     if (_isRapidSwapping) return; // Prevent multiple timers
 
-    print("Starting rapid word swapping - user is idle!"); // Debug
     _isRapidSwapping = true;
     _rapidSwapTimer = Timer.periodic(const Duration(milliseconds: 500), (
       timer,
     ) {
       // Rapid word swapping every 500ms while idle
-      print("Executing rapid word swap"); // Debug
       wordSwapping();
       updateState();
     });
   }
 
   void _stopRapidSwapping() {
-    print("Stopping rapid word swapping - user is active!"); // Debug
     _isRapidSwapping = false;
     _rapidSwapTimer?.cancel();
     _rapidSwapTimer = null;
@@ -71,7 +68,6 @@ class ChaosManager {
 
   // Call this method whenever user types to reset idle detection
   void onUserActivity() {
-    print("User activity detected - resetting idle timer"); // Debug
     _resetIdleTimer();
   }
 
