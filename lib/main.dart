@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'dart:io';
 import 'dart:async';
 import 'dart:math';
+import 'package:file_picker/file_picker.dart';
 
 // ChaosManager handles all the chaos behaviors
 class ChaosManager {
@@ -220,6 +221,36 @@ class InsertDateTimeIntent extends Intent {
   const InsertDateTimeIntent();
 }
 
+// TabData class to manage individual tab state
+class TabData {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  String fileName;
+  String? filePath;
+  bool isModified;
+  int lineNumber;
+  int columnNumber;
+  int wordCount;
+  int charCount;
+
+  TabData({
+    required this.controller,
+    required this.focusNode,
+    this.fileName = 'Untitled.txt',
+    this.filePath,
+    this.isModified = false,
+    this.lineNumber = 1,
+    this.columnNumber = 30,
+    this.wordCount = 0,
+    this.charCount = 0,
+  });
+
+  void dispose() {
+    controller.dispose();
+    focusNode.dispose();
+  }
+}
+
 void main() {
   runApp(const MyApp());
 }
@@ -254,15 +285,12 @@ class ModernNotepadPage extends StatefulWidget {
 }
 
 class _ModernNotepadPageState extends State<ModernNotepadPage> {
-  final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode();
+  // Tab management
+  List<TabData> _tabs = [];
+  int _currentTabIndex = 0;
+
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _replaceController = TextEditingController();
-
-  // File handling
-  String _currentFileName = 'Untitled.txt';
-  String? _currentFilePath;
-  bool _isModified = false;
 
   // Find/Replace functionality
   int _currentSearchIndex = -1;
@@ -275,27 +303,38 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
   // Chaos mode state
   bool _isChaosEnabled = false;
-  late ChaosManager _chaosManager;
+  ChaosManager? _chaosManager;
 
-  // Status bar
-  int _lineNumber = 1;
-  int _columnNumber = 30;
-  int _wordCount = 0;
-  int _charCount = 0;
+  // Computed properties for current tab
+  TabData get _currentTab => _tabs[_currentTabIndex];
+  TextEditingController get _controller => _currentTab.controller;
+  FocusNode get _focusNode => _currentTab.focusNode;
+  String get _currentFileName => _currentTab.fileName;
+  set _currentFileName(String value) => _currentTab.fileName = value;
+  String? get _currentFilePath => _currentTab.filePath;
+  set _currentFilePath(String? value) => _currentTab.filePath = value;
+  bool get _isModified => _currentTab.isModified;
+  set _isModified(bool value) => _currentTab.isModified = value;
+  int get _lineNumber => _currentTab.lineNumber;
+  set _lineNumber(int value) => _currentTab.lineNumber = value;
+  int get _columnNumber => _currentTab.columnNumber;
+  set _columnNumber(int value) => _currentTab.columnNumber = value;
+  int get _wordCount => _currentTab.wordCount;
+  set _wordCount(int value) => _currentTab.wordCount = value;
+  int get _charCount => _currentTab.charCount;
+  set _charCount(int value) => _currentTab.charCount = value;
 
   @override
   void initState() {
     super.initState();
+
+    // Create the first tab
+    _createNewTab();
+
     _controller.addListener(_updateStats);
 
-    // Initialize ChaosManager
-    _chaosManager = ChaosManager(
-      textController: _controller,
-      updateState: () => setState(() {}),
-    );
-
-    // Start chaos immediately (always active)
-    _chaosManager.startChaos();
+    // Initialize ChaosManager with the current controller
+    _initializeChaosManager();
 
     // Set initial cursor position to column 30
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -305,15 +344,110 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     });
   }
 
+  void _initializeChaosManager() {
+    // Stop existing chaos manager if it exists
+    _chaosManager?.stopChaos();
+
+    // Initialize ChaosManager with current tab's controller
+    _chaosManager = ChaosManager(
+      textController: _controller,
+      updateState: () => setState(() {}),
+    );
+
+    // Start chaos immediately (always active)
+    _chaosManager?.startChaos();
+  }
+
   @override
   void dispose() {
-    _chaosManager.stopChaos();
+    _chaosManager?.stopChaos();
     _controller.removeListener(_updateStats);
-    _controller.dispose();
-    _focusNode.dispose();
+
+    // Dispose all tabs
+    for (final tab in _tabs) {
+      tab.dispose();
+    }
+
     _searchController.dispose();
     _replaceController.dispose();
     super.dispose();
+  }
+
+  // Tab management methods
+  void _createNewTab() {
+    final controller = TextEditingController();
+    final focusNode = FocusNode();
+
+    controller.addListener(_updateStats);
+
+    final newTab = TabData(controller: controller, focusNode: focusNode);
+
+    setState(() {
+      _tabs.add(newTab);
+      _currentTabIndex = _tabs.length - 1;
+    });
+
+    // Initialize chaos manager for the new active tab
+    _initializeChaosManager();
+
+    // Focus the new tab
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      focusNode.requestFocus();
+    });
+  }
+
+  void _switchToTab(int index) {
+    if (index >= 0 && index < _tabs.length) {
+      setState(() {
+        _currentTabIndex = index;
+      });
+
+      // Reinitialize chaos manager for the new active tab
+      _initializeChaosManager();
+
+      // Focus the selected tab
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusNode.requestFocus();
+      });
+    }
+  }
+
+  void _closeTab(int index) {
+    if (_tabs.length <= 1) {
+      // Don't close the last tab, just create a new empty one
+      _createNewFile();
+      return;
+    }
+
+    final tabToClose = _tabs[index];
+
+    if (tabToClose.isModified) {
+      _showUnsavedChangesDialog(() => _performCloseTab(index));
+    } else {
+      _performCloseTab(index);
+    }
+  }
+
+  void _performCloseTab(int index) {
+    final tabToClose = _tabs[index];
+    tabToClose.dispose();
+
+    setState(() {
+      _tabs.removeAt(index);
+      if (_currentTabIndex >= _tabs.length) {
+        _currentTabIndex = _tabs.length - 1;
+      } else if (_currentTabIndex > index) {
+        _currentTabIndex--;
+      }
+    });
+
+    // Reinitialize chaos manager for the new current tab
+    _initializeChaosManager();
+
+    // Focus the current tab
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
+    });
   }
 
   void _updateStats() {
@@ -347,11 +481,8 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
   // File handling methods
   void _newFile() {
-    if (_isModified) {
-      _showUnsavedChangesDialog(() => _createNewFile());
-    } else {
-      _createNewFile();
-    }
+    // Create a new tab instead of clearing current one
+    _createNewTab();
   }
 
   void _createNewFile() {
@@ -373,61 +504,34 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
   Future<void> _performOpenFile() async {
     try {
-      final downloadsPath = Platform.isWindows
-          ? '${Platform.environment['USERPROFILE']}${Platform.pathSeparator}Downloads'
-          : '${Platform.environment['HOME']}${Platform.pathSeparator}Downloads';
-
-      final fileName = await _showFileNameDialog(
-        'Open File',
-        'Enter filename to open from Downloads:',
+      // Use native Windows file dialog
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        dialogTitle: 'Open File',
+        type: FileType.custom,
+        allowedExtensions: ['txt'],
+        allowMultiple: false,
       );
-      if (fileName != null && fileName.isNotEmpty) {
-        final filePath = '$downloadsPath${Platform.pathSeparator}$fileName';
+
+      if (result != null && result.files.single.path != null) {
+        final filePath = result.files.single.path!;
         final file = File(filePath);
 
         if (await file.exists()) {
           final content = await file.readAsString();
           setState(() {
             _controller.text = content;
-            _currentFileName = fileName;
+            _currentFileName = result.files.single.name;
             _currentFilePath = filePath;
             _isModified = false;
           });
           _showSnackBar('File opened successfully');
         } else {
-          _showSnackBar('File not found: $fileName');
+          _showSnackBar('File not found');
         }
       }
     } catch (e) {
       _showSnackBar('Error opening file: $e');
     }
-  }
-
-  Future<String?> _showFileNameDialog(String title, String hint) async {
-    final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(title),
-          content: TextField(
-            controller: controller,
-            decoration: InputDecoration(hintText: hint),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(controller.text),
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void _clearFormatting() {
@@ -811,9 +915,10 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   Future<void> _saveFile() async {
     try {
       // Apply random indentation chaos before saving
-      _chaosManager.randomIndentationOnSave();
+      _chaosManager?.randomIndentationOnSave();
 
       if (_currentFilePath != null) {
+        // Save directly to existing file without popup
         final file = File(_currentFilePath!);
         await file.writeAsString(_controller.text);
         setState(() {
@@ -821,6 +926,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         });
         _showSnackBar('File saved successfully');
       } else {
+        // Use native file dialog for new files
         await _saveAsFile();
       }
     } catch (e) {
@@ -830,27 +936,31 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
   Future<void> _saveAsFile() async {
     try {
-      final downloadsPath = Platform.isWindows
-          ? '${Platform.environment['USERPROFILE']}${Platform.pathSeparator}Downloads'
-          : '${Platform.environment['HOME']}${Platform.pathSeparator}Downloads';
+      // Use native Windows file dialog
+      String? outputFile = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save File As',
+        fileName: _currentFileName.endsWith('.txt')
+            ? _currentFileName
+            : '${_currentFileName.replaceAll('.txt', '')}.txt',
+        type: FileType.custom,
+        allowedExtensions: ['txt'],
+      );
 
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = _currentFileName == 'Untitled.txt'
-          ? 'notepad_$timestamp.txt'
-          : _currentFileName;
+      if (outputFile != null) {
+        // Apply random indentation chaos before saving
+        _chaosManager?.randomIndentationOnSave();
 
-      final filePath = '$downloadsPath${Platform.pathSeparator}$fileName';
-      final file = File(filePath);
+        final file = File(outputFile);
+        await file.writeAsString(_controller.text);
 
-      await file.writeAsString(_controller.text);
+        setState(() {
+          _currentFilePath = outputFile;
+          _currentFileName = outputFile.split(Platform.pathSeparator).last;
+          _isModified = false;
+        });
 
-      setState(() {
-        _currentFilePath = filePath;
-        _currentFileName = fileName;
-        _isModified = false;
-      });
-
-      _showSnackBar('File saved as $fileName');
+        _showSnackBar('File saved as ${_currentFileName}');
+      }
     } catch (e) {
       _showSnackBar('Error saving file: $e');
     }
@@ -990,49 +1100,88 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 4,
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.pink.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.pink.shade100,
-                            width: 0.8,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _isModified
-                                  ? '$_currentFileName*'
-                                  : _currentFileName,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey.shade600,
+                      // Tab list - scrollable if too many tabs
+                      Expanded(
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _tabs.length,
+                          itemBuilder: (context, index) {
+                            final tab = _tabs[index];
+                            final isActive = index == _currentTabIndex;
+
+                            return Container(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 3,
+                                vertical: 4,
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.close,
-                              size: 10,
-                              color: Colors.grey.shade400,
-                            ),
-                          ],
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? Colors.blue.shade50
+                                    : Colors.pink.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isActive
+                                      ? Colors.blue.shade200
+                                      : Colors.pink.shade100,
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () => _switchToTab(index),
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        tab.isModified
+                                            ? '${tab.fileName}*'
+                                            : tab.fileName,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: isActive
+                                              ? FontWeight.w600
+                                              : FontWeight.w500,
+                                          color: isActive
+                                              ? Colors.blue.shade700
+                                              : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          onTap: () => _closeTab(index),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          child: Icon(
+                                            Icons.close,
+                                            size: 10,
+                                            color: isActive
+                                                ? Colors.blue.shade400
+                                                : Colors.grey.shade400,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ),
+                      // Add new tab button
                       Container(
                         width: 20,
                         height: 20,
-                        margin: const EdgeInsets.only(left: 3),
+                        margin: const EdgeInsets.only(left: 3, right: 6),
                         decoration: BoxDecoration(
                           border: Border.all(
                             color: Colors.pink.shade100,
@@ -1154,7 +1303,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   children: [
                                     const Icon(Icons.note_add, size: 16),
                                     const SizedBox(width: 8),
-                                    const Text('New (Ctrl+N)'),
+                                    Text(
+                                      'New (Ctrl+N)',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.grey.shade800,
+                                        fontFamily: 'Segoe UI',
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -1164,7 +1321,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   children: [
                                     const Icon(Icons.folder_open, size: 16),
                                     const SizedBox(width: 8),
-                                    const Text('Open (Ctrl+O)'),
+                                    Text(
+                                      'Open (Ctrl+O)',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.grey.shade800,
+                                        fontFamily: 'Segoe UI',
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -1175,7 +1340,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   children: [
                                     const Icon(Icons.save, size: 16),
                                     const SizedBox(width: 8),
-                                    const Text('Save (Ctrl+S)'),
+                                    Text(
+                                      'Save (Ctrl+S)',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.grey.shade800,
+                                        fontFamily: 'Segoe UI',
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -1185,7 +1358,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   children: [
                                     const Icon(Icons.save_as, size: 16),
                                     const SizedBox(width: 8),
-                                    const Text('Save As (Ctrl+Shift+S)'),
+                                    Text(
+                                      'Save As (Ctrl+Shift+S)',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.grey.shade800,
+                                        fontFamily: 'Segoe UI',
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -1196,7 +1377,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   children: [
                                     const Icon(Icons.exit_to_app, size: 16),
                                     const SizedBox(width: 8),
-                                    const Text('Exit'),
+                                    Text(
+                                      'Exit',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.grey.shade800,
+                                        fontFamily: 'Segoe UI',
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -1282,23 +1471,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'select_all',
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.select_all,
-                                      size: 16,
-                                      color: _isChaosEnabled
-                                          ? Colors.red.shade600
-                                          : null,
-                                    ),
+                                    const Icon(Icons.select_all, size: 16),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Select All (Ctrl+A)',
                                       style: TextStyle(
-                                        color: _isChaosEnabled
-                                            ? Colors.red.shade700
-                                            : null,
-                                        fontWeight: _isChaosEnabled
-                                            ? FontWeight.w500
-                                            : FontWeight.normal,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.grey.shade800,
+                                        fontFamily: 'Segoe UI',
                                       ),
                                     ),
                                   ],
@@ -1309,23 +1490,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'find',
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.search,
-                                      size: 16,
-                                      color: _isChaosEnabled
-                                          ? Colors.red.shade600
-                                          : null,
-                                    ),
+                                    const Icon(Icons.search, size: 16),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Find (Ctrl+F)',
                                       style: TextStyle(
-                                        color: _isChaosEnabled
-                                            ? Colors.red.shade700
-                                            : null,
-                                        fontWeight: _isChaosEnabled
-                                            ? FontWeight.w500
-                                            : FontWeight.normal,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.grey.shade800,
+                                        fontFamily: 'Segoe UI',
                                       ),
                                     ),
                                   ],
@@ -1335,23 +1508,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'replace',
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.find_replace,
-                                      size: 16,
-                                      color: _isChaosEnabled
-                                          ? Colors.red.shade600
-                                          : null,
-                                    ),
+                                    const Icon(Icons.find_replace, size: 16),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Replace (Ctrl+H)',
                                       style: TextStyle(
-                                        color: _isChaosEnabled
-                                            ? Colors.red.shade700
-                                            : null,
-                                        fontWeight: _isChaosEnabled
-                                            ? FontWeight.w500
-                                            : FontWeight.normal,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.grey.shade800,
+                                        fontFamily: 'Segoe UI',
                                       ),
                                     ),
                                   ],
@@ -1362,23 +1527,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'clear',
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.clear_all,
-                                      size: 16,
-                                      color: _isChaosEnabled
-                                          ? Colors.red.shade600
-                                          : null,
-                                    ),
+                                    const Icon(Icons.clear_all, size: 16),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Clear Formatting',
                                       style: TextStyle(
-                                        color: _isChaosEnabled
-                                            ? Colors.red.shade700
-                                            : null,
-                                        fontWeight: _isChaosEnabled
-                                            ? FontWeight.w500
-                                            : FontWeight.normal,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.grey.shade800,
+                                        fontFamily: 'Segoe UI',
                                       ),
                                     ),
                                   ],
@@ -1388,23 +1545,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'go_to_line',
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.linear_scale,
-                                      size: 16,
-                                      color: _isChaosEnabled
-                                          ? Colors.red.shade600
-                                          : null,
-                                    ),
+                                    const Icon(Icons.linear_scale, size: 16),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Go to Line (Ctrl+G)',
                                       style: TextStyle(
-                                        color: _isChaosEnabled
-                                            ? Colors.red.shade700
-                                            : null,
-                                        fontWeight: _isChaosEnabled
-                                            ? FontWeight.w500
-                                            : FontWeight.normal,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.grey.shade800,
+                                        fontFamily: 'Segoe UI',
                                       ),
                                     ),
                                   ],
@@ -1414,23 +1563,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'insert_datetime',
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.access_time,
-                                      size: 16,
-                                      color: _isChaosEnabled
-                                          ? Colors.red.shade600
-                                          : null,
-                                    ),
+                                    const Icon(Icons.access_time, size: 16),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Insert Date/Time (F5)',
                                       style: TextStyle(
-                                        color: _isChaosEnabled
-                                            ? Colors.red.shade700
-                                            : null,
-                                        fontWeight: _isChaosEnabled
-                                            ? FontWeight.w500
-                                            : FontWeight.normal,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w400,
+                                        color: Colors.grey.shade800,
+                                        fontFamily: 'Segoe UI',
                                       ),
                                     ),
                                   ],
