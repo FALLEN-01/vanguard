@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+// Intent classes for keyboard shortcuts
+class BoldIntent extends Intent {
+  const BoldIntent();
+}
+
+class ItalicIntent extends Intent {
+  const ItalicIntent();
+}
+
 void main() {
   runApp(const MyApp());
 }
@@ -19,11 +28,11 @@ class MyApp extends StatelessWidget {
           primary: Colors.blue,
           surface: Color(0xFFFAFAFA),
         ),
-        scaffoldBackgroundColor: const Color(0xFFF3F3F3),
+        scaffoldBackgroundColor: Colors.white,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.white,
           elevation: 0,
-          systemOverlayStyle: SystemUiOverlayStyle.dark,
+          systemOverlayStyle: SystemUiOverlayStyle.light,
         ),
       ),
       home: const ModernNotepadPage(),
@@ -76,261 +85,258 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F3F3),
-      body: Column(
-        children: [
-          // Custom Title Bar with Mica effect
-          Container(
-            height: 32,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.7),
-              border: const Border(
-                bottom: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
-              ),
-            ),
-            child: Row(
+    return Shortcuts(
+      shortcuts: <LogicalKeySet, Intent>{
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyB):
+            const BoldIntent(),
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyI):
+            const ItalicIntent(),
+      },
+      child: Actions(
+        actions: <Type, Action<Intent>>{
+          BoldIntent: CallbackAction<BoldIntent>(
+            onInvoke: (BoldIntent intent) {
+              setState(() {
+                _isBold = !_isBold;
+              });
+              return null;
+            },
+          ),
+          ItalicIntent: CallbackAction<ItalicIntent>(
+            onInvoke: (ItalicIntent intent) {
+              setState(() {
+                _isItalic = !_isItalic;
+              });
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          autofocus: true,
+          child: Scaffold(
+            backgroundColor: Colors.white,
+            body: Column(
               children: [
-                const SizedBox(width: 12),
-                // Notepad icon
                 Container(
-                  width: 16,
-                  height: 16,
+                  height: 36,
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(2),
-                      bottomLeft: Radius.circular(2),
-                      bottomRight: Radius.circular(2),
+                    border: Border(
+                      bottom: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
                     ),
                   ),
-                  child: Container(
-                    margin: const EdgeInsets.only(left: 2),
-                    decoration: const BoxDecoration(
-                      color: Colors.blue,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(1),
-                        bottomLeft: Radius.circular(1),
-                      ),
-                    ),
-                    width: 3,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Untitled - ScramPad',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.black87,
-                  ),
-                ),
-                const Spacer(),
-                // Title bar controls
-                _buildTitleBarButton(Icons.palette, Colors.red),
-                _buildTitleBarButton(Icons.account_circle, Colors.orange),
-                _buildTitleBarButton(Icons.settings, Colors.grey),
-                _buildTitleBarButton(Icons.minimize, Colors.grey),
-                _buildTitleBarButton(Icons.crop_square, Colors.grey),
-                _buildTitleBarButton(Icons.close, Colors.grey),
-              ],
-            ),
-          ),
-
-          // Tab Bar
-          Container(
-            height: 36,
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(
-                bottom: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F0F0),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Row(
                     children: [
-                      Text(
-                        'Untitled',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
+                      Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF0F0F0),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Untitled',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                            SizedBox(width: 6),
+                            Icon(Icons.close, size: 12, color: Colors.grey),
+                          ],
                         ),
                       ),
-                      SizedBox(width: 6),
-                      Icon(Icons.close, size: 12, color: Colors.grey),
+                      Container(
+                        width: 24,
+                        height: 24,
+                        margin: const EdgeInsets.only(left: 4),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Icon(
+                          Icons.add,
+                          size: 14,
+                          color: Colors.grey,
+                        ),
+                      ),
+                      const Spacer(), // Push settings icon to the right
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {},
+                            borderRadius: BorderRadius.circular(4),
+                            child: Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: Icon(
+                                Icons.settings,
+                                size: 18,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Container(
-                  width: 24,
-                  height: 24,
-                  margin: const EdgeInsets.only(left: 4),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Icon(Icons.add, size: 14, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
 
-          // Toolbar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                _buildMenuButton('File'),
-                _buildMenuButton('Edit'),
-                _buildMenuButton('View'),
-                const SizedBox(width: 16),
-                _buildDropdown(_currentHeading, ['Normal', 'H1', 'H2', 'H3']),
-                const SizedBox(width: 8),
-                _buildDropdown('•', ['•', '1.', '→']),
-                const SizedBox(width: 16),
-                _buildFormatButton(Icons.format_bold, _isBold, () {
-                  setState(() => _isBold = !_isBold);
-                }),
-                _buildFormatButton(Icons.format_italic, _isItalic, () {
-                  setState(() => _isItalic = !_isItalic);
-                }),
-                _buildFormatButton(Icons.link, false, () {}),
-                const SizedBox(width: 8),
+                // Toolbar
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: 12,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: const Text(
-                    'Aa',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black54,
+                  child: Row(
+                    children: [
+                      _buildMenuButton('File'),
+                      _buildMenuButton('Edit'),
+                      _buildMenuButton('View'),
+                      const SizedBox(width: 16),
+                      _buildDropdown(_currentHeading, [
+                        'Normal',
+                        'H1',
+                        'H2',
+                        'H3',
+                      ]),
+                      const SizedBox(width: 8),
+                      _buildDropdown('•', ['•', '1.', '→']),
+                      const SizedBox(width: 16),
+                      _buildFormatButton(Icons.format_bold, _isBold, () {
+                        setState(() => _isBold = !_isBold);
+                      }),
+                      _buildFormatButton(Icons.format_italic, _isItalic, () {
+                        setState(() => _isItalic = !_isItalic);
+                      }),
+                      _buildFormatButton(Icons.link, false, () {}),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text(
+                          'Aa',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Text Editor Area
+                Expanded(
+                  child: Container(
+                    color: Colors.white,
+                    child: TextField(
+                      controller: _controller,
+                      maxLines: null,
+                      expands: true,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontFamily: 'Segoe UI',
+                        color: Colors.black,
+                        height: 1.4,
+                        fontWeight: _isBold ? FontWeight.w600 : FontWeight.w400,
+                        fontStyle: _isItalic
+                            ? FontStyle.italic
+                            : FontStyle.normal,
+                      ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.all(16),
+                        hintText: '',
+                      ),
+                      textAlign: TextAlign.start,
+                      textAlignVertical: TextAlignVertical.top,
+                      cursorColor: Colors.black,
+                      cursorWidth: 1.0,
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
 
-          // Text Editor Area
-          Expanded(
-            child: Container(
-              color: Colors.white,
-              child: TextField(
-                controller: _controller,
-                maxLines: null,
-                expands: true,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontFamily: 'Segoe UI',
-                  color: Colors.black,
-                  height: 1.4,
-                  fontWeight: _isBold ? FontWeight.w600 : FontWeight.w400,
-                  fontStyle: _isItalic ? FontStyle.italic : FontStyle.normal,
-                ),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.all(16),
-                  hintText: '',
-                ),
-                textAlign: TextAlign.start,
-                textAlignVertical: TextAlignVertical.top,
-                cursorColor: Colors.black,
-                cursorWidth: 1.0,
-              ),
-            ),
-          ),
-
-          // Status Bar
-          Container(
-            height: 24,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF8F8F8),
-              border: Border(
-                top: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
-              ),
-            ),
-            child: Row(
-              children: [
-                Text(
-                  'Ln $_lineNumber, Col $_columnNumber',
-                  style: const TextStyle(fontSize: 11, color: Colors.black54),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  '$_characterCount characters',
-                  style: const TextStyle(fontSize: 11, color: Colors.black54),
-                ),
-                const Spacer(),
-                const Text(
-                  'Plain text',
-                  style: TextStyle(fontSize: 11, color: Colors.black54),
-                ),
-                const SizedBox(width: 16),
-                const Text(
-                  '100%',
-                  style: TextStyle(fontSize: 11, color: Colors.black54),
-                ),
-                const SizedBox(width: 16),
-                const Text(
-                  'Windows (CRLF)',
-                  style: TextStyle(fontSize: 11, color: Colors.black54),
-                ),
-                const SizedBox(width: 16),
-                const Text(
-                  'UTF-8',
-                  style: TextStyle(fontSize: 11, color: Colors.black54),
+                // Status Bar
+                Container(
+                  height: 24,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF8F8F8),
+                    border: Border(
+                      top: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Ln $_lineNumber, Col $_columnNumber',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Text(
+                        '$_characterCount characters',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.black54,
+                        ),
+                      ),
+                      const Spacer(),
+                      const Text(
+                        'Plain text',
+                        style: TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                      const SizedBox(width: 16),
+                      const Text(
+                        '100%',
+                        style: TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                      const SizedBox(width: 16),
+                      const Text(
+                        'Windows (CRLF)',
+                        style: TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                      const SizedBox(width: 16),
+                      const Text(
+                        'UTF-8',
+                        style: TextStyle(fontSize: 11, color: Colors.black54),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTitleBarButton(IconData icon, Color color) {
-    return Container(
-      width: 32,
-      height: 32,
-      margin: const EdgeInsets.only(right: 1),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {},
-          child: Icon(icon, size: 14, color: color.withValues(alpha: 0.8)),
         ),
       ),
     );
