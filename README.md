@@ -5,22 +5,21 @@
 
 
 ## Basic Details
-### Team Name: [Name]
+### Team Name: [Vanguard]
 
 
 ### Team Members
-- Team Lead: [Name] - [College]
-- Member 2: [Name] - [College]
-- Member 3: [Name] - [College]
+- Team Lead: [Jeffin Basil] - [SCMS SCHOOL OF ENGINEERING & TECHNOLOGY]
+- Member 2: [Adithya Manghat] - [SCMS SCHOOL OF ENGINEERING & TECHNOLOGY]
 
 ### Project Description
-[2-3 lines about what your project does]
+["ScramPad" could be envisioned as a notepad application that looks normal but gradually scrambles, distorts, or modifies saved notes subtly over time]
 
 ### The Problem (that doesn't exist)
-[What ridiculous problem are you solving?]
+[Notepad app are convenient and useful for most cases.]
 
 ### The Solution (that nobody asked for)
-[How are you solving it? Keep it fun!]
+[It will be more inconvenient to use.]
 
 ## Technical Details
 ### Technologies/Components Used
