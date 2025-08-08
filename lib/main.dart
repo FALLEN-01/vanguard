@@ -1,6 +1,179 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
+import 'dart:async';
+import 'dart:math';
+
+// ChaosManager handles all the chaos behaviors
+class ChaosManager {
+  late Timer _timer;
+  final Random _random = Random();
+  final TextEditingController textController;
+  final VoidCallback updateState;
+
+  ChaosManager({required this.textController, required this.updateState});
+
+  void startChaos() {
+    _scheduleNextChaos();
+  }
+
+  void stopChaos() {
+    _timer.cancel();
+  }
+
+  void _scheduleNextChaos() {
+    // Random interval between 7-30 seconds
+    final int seconds = 7 + _random.nextInt(24); // 7 to 30 seconds
+    _timer = Timer(Duration(seconds: seconds), () {
+      _executeChaosAction();
+      _scheduleNextChaos(); // Schedule the next chaos event
+    });
+  }
+
+  void _executeChaosAction() {
+    final actions = [
+      _cursorTeleportation,
+      _randomDeletion,
+      _letterOrWordSwapping,
+      _punctuationInjection,
+    ];
+
+    // Pick a random action
+    final action = actions[_random.nextInt(actions.length)];
+    action();
+    updateState();
+  }
+
+  // Random Indentation on Save - will be called from save method
+  void randomIndentationOnSave() {
+    final text = textController.text;
+    if (text.isEmpty) return;
+
+    final lines = text.split('\n');
+    final linesToModify = _random.nextInt(3) + 1; // Modify 1-3 lines
+
+    for (int i = 0; i < linesToModify; i++) {
+      final lineIndex = _random.nextInt(lines.length);
+      final indentType = _random.nextBool() ? '\t' : '  '; // Tab or 2 spaces
+      final indentCount = _random.nextInt(3) + 1; // 1-3 indentations
+      lines[lineIndex] = (indentType * indentCount) + lines[lineIndex];
+    }
+
+    textController.text = lines.join('\n');
+  }
+
+  void _cursorTeleportation() {
+    final text = textController.text;
+    if (text.isEmpty) return;
+
+    final newPosition = _random.nextInt(text.length);
+    textController.selection = TextSelection.collapsed(offset: newPosition);
+  }
+
+  void _randomDeletion() {
+    final text = textController.text;
+    if (text.isEmpty) return;
+
+    if (_random.nextBool()) {
+      // Delete a random letter
+      final position = _random.nextInt(text.length);
+      final newText =
+          text.substring(0, position) + text.substring(position + 1);
+      textController.text = newText;
+    } else {
+      // Delete a random word
+      final words = text.split(RegExp(r'\s+'));
+      if (words.isNotEmpty) {
+        final wordIndex = _random.nextInt(words.length);
+        words.removeAt(wordIndex);
+        textController.text = words.join(' ');
+      }
+    }
+  }
+
+  void _letterOrWordSwapping() {
+    final text = textController.text;
+    if (text.length < 2) return;
+
+    if (_random.nextBool() && text.length > 1) {
+      // Swap letters within a word
+      final lines = text.split('\n');
+      final words = <String>[];
+      final lineIndices = <int>[];
+
+      for (int i = 0; i < lines.length; i++) {
+        final lineWords = lines[i].split(RegExp(r'\s+'));
+        for (final word in lineWords) {
+          if (word.length > 1) {
+            words.add(word);
+            lineIndices.add(i);
+          }
+        }
+      }
+
+      if (words.isNotEmpty) {
+        final wordIndex = _random.nextInt(words.length);
+        final word = words[wordIndex];
+        final chars = word.split('');
+
+        if (chars.length > 1) {
+          final pos1 = _random.nextInt(chars.length);
+          int pos2 = _random.nextInt(chars.length);
+          while (pos2 == pos1) {
+            pos2 = _random.nextInt(chars.length);
+          }
+
+          final temp = chars[pos1];
+          chars[pos1] = chars[pos2];
+          chars[pos2] = temp;
+
+          final newWord = chars.join('');
+          textController.text = text.replaceFirst(word, newWord);
+        }
+      }
+    } else {
+      // Swap entire words between lines
+      final lines = text.split('\n');
+      if (lines.length < 2) return;
+
+      final line1Index = _random.nextInt(lines.length);
+      int line2Index = _random.nextInt(lines.length);
+      while (line2Index == line1Index) {
+        line2Index = _random.nextInt(lines.length);
+      }
+
+      final words1 = lines[line1Index].split(RegExp(r'\s+'));
+      final words2 = lines[line2Index].split(RegExp(r'\s+'));
+
+      if (words1.isNotEmpty && words2.isNotEmpty) {
+        final word1Index = _random.nextInt(words1.length);
+        final word2Index = _random.nextInt(words2.length);
+
+        final temp = words1[word1Index];
+        words1[word1Index] = words2[word2Index];
+        words2[word2Index] = temp;
+
+        lines[line1Index] = words1.join(' ');
+        lines[line2Index] = words2.join(' ');
+
+        textController.text = lines.join('\n');
+      }
+    }
+  }
+
+  void _punctuationInjection() {
+    final text = textController.text;
+    if (text.isEmpty) return;
+
+    final punctuations = ['.', ',', '!', '?', ';', ':'];
+    final punctuation = punctuations[_random.nextInt(punctuations.length)];
+    final position = _random.nextInt(text.length + 1);
+
+    final newText =
+        text.substring(0, position) + punctuation + text.substring(position);
+    textController.text = newText;
+  }
+}
 
 // Intent classes for keyboard shortcuts
 class SelectAllIntent extends Intent {
@@ -103,12 +276,11 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
   // Chaos mode state
   bool _isChaosEnabled = false;
+  late ChaosManager _chaosManager;
 
   // Status bar
   int _lineNumber = 1;
   int _columnNumber = 30;
-  int _currentLine = 0;
-  int _currentColumn = 0;
   int _wordCount = 0;
   int _charCount = 0;
 
@@ -116,6 +288,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   void initState() {
     super.initState();
     _controller.addListener(_updateStats);
+
+    // Initialize ChaosManager
+    _chaosManager = ChaosManager(
+      textController: _controller,
+      updateState: () => setState(() {}),
+    );
+
+    // Start chaos immediately (always active)
+    _chaosManager.startChaos();
 
     // Set initial cursor position to column 30
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -127,6 +308,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
   @override
   void dispose() {
+    _chaosManager.stopChaos();
     _controller.removeListener(_updateStats);
     _controller.dispose();
     _focusNode.dispose();
@@ -151,13 +333,8 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         final beforeCursor = text.substring(0, selection.baseOffset);
         _lineNumber = '\n'.allMatches(beforeCursor).length + 1;
         _columnNumber = beforeCursor.split('\n').last.length + 1;
-
-        // Update current line/column for status bar
-        _currentLine = _lineNumber - 1; // 0-indexed
-        _currentColumn = _columnNumber - 1; // 0-indexed
       } else {
         _columnNumber = 30;
-        _currentColumn = 30;
       }
     });
   }
@@ -634,6 +811,9 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
   Future<void> _saveFile() async {
     try {
+      // Apply random indentation chaos before saving
+      _chaosManager.randomIndentationOnSave();
+
       if (_currentFilePath != null) {
         final file = File(_currentFilePath!);
         await file.writeAsString(_controller.text);
@@ -831,14 +1011,10 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: _isChaosEnabled
-                              ? Colors.red.shade50
-                              : Colors.pink.shade50,
+                          color: Colors.pink.shade50,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: _isChaosEnabled
-                                ? Colors.red.shade100
-                                : Colors.pink.shade100,
+                            color: Colors.pink.shade100,
                             width: 0.8,
                           ),
                         ),
@@ -870,15 +1046,11 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                         margin: const EdgeInsets.only(left: 3),
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: _isChaosEnabled
-                                ? Colors.red.shade100
-                                : Colors.pink.shade100,
+                            color: Colors.pink.shade100,
                             width: 0.8,
                           ),
                           borderRadius: BorderRadius.circular(6),
-                          color: _isChaosEnabled
-                              ? Colors.red.shade50
-                              : Colors.pink.shade50,
+                          color: Colors.pink.shade50,
                         ),
                         child: Material(
                           color: Colors.transparent,
@@ -906,9 +1078,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                               child: Icon(
                                 Icons.settings,
                                 size: 14,
-                                color: _isChaosEnabled
-                                    ? Colors.red.shade400
-                                    : Colors.grey.shade400,
+                                color: Colors.grey.shade400,
                               ),
                             ),
                           ),
@@ -925,22 +1095,16 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                     vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: _isChaosEnabled
-                        ? Colors.red.shade50.withValues(alpha: 0.3)
-                        : Colors.white,
+                    color: Colors.white,
                     border: Border(
                       bottom: BorderSide(
-                        color: _isChaosEnabled
-                            ? Colors.red.shade100
-                            : const Color(0xFFE0E0E0),
+                        color: const Color(0xFFE0E0E0),
                         width: 0.5,
                       ),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: (_isChaosEnabled
-                            ? Colors.red.withValues(alpha: 0.08)
-                            : Colors.black.withValues(alpha: 0.05)),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 4,
                         offset: const Offset(0, 2),
                       ),
@@ -952,28 +1116,17 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                       Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(6),
-                          color: _isChaosEnabled
-                              ? Colors.red.shade50.withValues(alpha: 0.5)
-                              : Colors.transparent,
-                          border: _isChaosEnabled
-                              ? Border.all(
-                                  color: Colors.red.shade100,
-                                  width: 0.5,
-                                )
-                              : null,
+                          color: Colors.transparent,
+                          border: null,
                         ),
                         child: Theme(
                           data: Theme.of(context).copyWith(
                             popupMenuTheme: PopupMenuThemeData(
-                              color: _isChaosEnabled
-                                  ? Colors.red.shade50
-                                  : Colors.white,
+                              color: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 side: BorderSide(
-                                  color: _isChaosEnabled
-                                      ? Colors.red.shade200
-                                      : Colors.grey.shade300,
+                                  color: Colors.grey.shade300,
                                   width: 1,
                                 ),
                               ),
@@ -991,9 +1144,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   Icon(
                                     Icons.folder_outlined,
                                     size: 12,
-                                    color: _isChaosEnabled
-                                        ? Colors.red.shade400
-                                        : Colors.grey.shade600,
+                                    color: Colors.grey.shade600,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
@@ -1001,9 +1152,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500,
-                                      color: _isChaosEnabled
-                                          ? Colors.red.shade600
-                                          : Colors.grey.shade600,
+                                      color: Colors.grey.shade600,
                                     ),
                                   ),
                                 ],
@@ -1033,25 +1182,9 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'new',
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.note_add,
-                                      size: 16,
-                                      color: _isChaosEnabled
-                                          ? Colors.red.shade600
-                                          : null,
-                                    ),
+                                    const Icon(Icons.note_add, size: 16),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      'New (Ctrl+N)',
-                                      style: TextStyle(
-                                        color: _isChaosEnabled
-                                            ? Colors.red.shade700
-                                            : null,
-                                        fontWeight: _isChaosEnabled
-                                            ? FontWeight.w500
-                                            : FontWeight.normal,
-                                      ),
-                                    ),
+                                    const Text('New (Ctrl+N)'),
                                   ],
                                 ),
                               ),
@@ -1059,25 +1192,9 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'open',
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.folder_open,
-                                      size: 16,
-                                      color: _isChaosEnabled
-                                          ? Colors.red.shade600
-                                          : null,
-                                    ),
+                                    const Icon(Icons.folder_open, size: 16),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      'Open (Ctrl+O)',
-                                      style: TextStyle(
-                                        color: _isChaosEnabled
-                                            ? Colors.red.shade700
-                                            : null,
-                                        fontWeight: _isChaosEnabled
-                                            ? FontWeight.w500
-                                            : FontWeight.normal,
-                                      ),
-                                    ),
+                                    const Text('Open (Ctrl+O)'),
                                   ],
                                 ),
                               ),
@@ -1086,25 +1203,9 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'save',
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.save,
-                                      size: 16,
-                                      color: _isChaosEnabled
-                                          ? Colors.red.shade600
-                                          : null,
-                                    ),
+                                    const Icon(Icons.save, size: 16),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      'Save (Ctrl+S)',
-                                      style: TextStyle(
-                                        color: _isChaosEnabled
-                                            ? Colors.red.shade700
-                                            : null,
-                                        fontWeight: _isChaosEnabled
-                                            ? FontWeight.w500
-                                            : FontWeight.normal,
-                                      ),
-                                    ),
+                                    const Text('Save (Ctrl+S)'),
                                   ],
                                 ),
                               ),
@@ -1112,25 +1213,9 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'save_as',
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.save_as,
-                                      size: 16,
-                                      color: _isChaosEnabled
-                                          ? Colors.red.shade600
-                                          : null,
-                                    ),
+                                    const Icon(Icons.save_as, size: 16),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      'Save As (Ctrl+Shift+S)',
-                                      style: TextStyle(
-                                        color: _isChaosEnabled
-                                            ? Colors.red.shade700
-                                            : null,
-                                        fontWeight: _isChaosEnabled
-                                            ? FontWeight.w500
-                                            : FontWeight.normal,
-                                      ),
-                                    ),
+                                    const Text('Save As (Ctrl+Shift+S)'),
                                   ],
                                 ),
                               ),
@@ -1139,25 +1224,9 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 value: 'exit',
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.exit_to_app,
-                                      size: 16,
-                                      color: _isChaosEnabled
-                                          ? Colors.red.shade600
-                                          : null,
-                                    ),
+                                    const Icon(Icons.exit_to_app, size: 16),
                                     const SizedBox(width: 8),
-                                    Text(
-                                      'Exit',
-                                      style: TextStyle(
-                                        color: _isChaosEnabled
-                                            ? Colors.red.shade700
-                                            : null,
-                                        fontWeight: _isChaosEnabled
-                                            ? FontWeight.w500
-                                            : FontWeight.normal,
-                                      ),
-                                    ),
+                                    const Text('Exit'),
                                   ],
                                 ),
                               ),
@@ -1170,22 +1239,11 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                         margin: const EdgeInsets.only(left: 4),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(6),
-                          color: _isChaosEnabled
-                              ? Colors.red.shade50.withValues(alpha: 0.5)
-                              : Colors.transparent,
-                          border: _isChaosEnabled
-                              ? Border.all(
-                                  color: Colors.red.shade100,
-                                  width: 0.5,
-                                )
-                              : null,
                         ),
                         child: Theme(
                           data: Theme.of(context).copyWith(
                             popupMenuTheme: PopupMenuThemeData(
-                              color: _isChaosEnabled
-                                  ? Colors.red.shade50
-                                  : Colors.white,
+                              color: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 side: BorderSide(
@@ -1412,8 +1470,6 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                           ),
                         ),
                       ),
-                      _buildMenuButton('View'),
-                      const SizedBox(width: 12),
                       _buildDropdown(_currentStyle, [
                         'Normal',
                         'H1',
@@ -1487,9 +1543,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                       style: TextStyle(
                         fontSize: 14,
                         fontFamily: 'Segoe UI',
-                        color: _isChaosEnabled
-                            ? Colors.red.shade900
-                            : Colors.black,
+                        color: Colors.black,
                         height: 1.4,
                         fontWeight: FontWeight.w400,
                       ),
@@ -1504,10 +1558,8 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                       ),
                       textAlign: TextAlign.start,
                       textAlignVertical: TextAlignVertical.top,
-                      cursorColor: _isChaosEnabled
-                          ? Colors.red.shade600
-                          : Colors.black,
-                      cursorWidth: _isChaosEnabled ? 2.0 : 1.0,
+                      cursorColor: Colors.black,
+                      cursorWidth: 1.0,
                     ),
                   ),
                 ),
@@ -1630,71 +1682,6 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
           },
         ),
       ),
-    );
-  }
-
-  Widget _buildMenuButton(String text) {
-    return Container(
-      margin: const EdgeInsets.only(right: 12),
-      child: InkWell(
-        onTap: text == 'File' ? _showFileMenu : () {},
-        borderRadius: BorderRadius.circular(6),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Text(
-            text,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showFileMenu() {
-    // Show a simple file menu
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('File'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.add),
-                title: const Text('New'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _newFile();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.save),
-                title: const Text('Save'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _saveFile();
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.save_as),
-                title: const Text('Save As'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _saveAsFile();
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
     );
   }
 
