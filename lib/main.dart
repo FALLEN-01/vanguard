@@ -494,7 +494,7 @@ class TypingSpeedMonitor {
       true; // Track if current violation level has been acknowledged
 
   // Speed thresholds (words per minute - assuming 5 chars per word)
-  static const int _warningThreshold = 300; // 65 WPM (65 * 5 chars)
+  static const int _warningThreshold = 325; // 65 WPM (65 * 5 chars)
 
   TypingSpeedMonitor({
     required this.showSpeedWarning,
@@ -544,10 +544,10 @@ class TypingSpeedMonitor {
 
     // Only act if speed is above threshold and no dialog is currently visible
     if (cpm >= _warningThreshold) {
-      // Check if enough time has passed since last warning (minimum 15 seconds gap - longer pause)
+      // Check if enough time has passed since last warning (5-second cooldown)
       final canShowWarning =
           _lastWarningTime == null ||
-          now.difference(_lastWarningTime!).inSeconds >= 15;
+          now.difference(_lastWarningTime!).inSeconds >= 5;
 
       // Only increment violation count when we can show a warning and current violation hasn't been acknowledged
       if (!isDialogVisible() &&
@@ -558,32 +558,24 @@ class TypingSpeedMonitor {
         _currentViolationAcknowledged =
             false; // Mark current violation as not acknowledged
 
-        if (_speedViolationCount == 1) {
-          // First violation - show sarcastic warning
-          showSpeedWarning(_speedViolationCount);
-          triggerSpeedChaos();
-        } else if (_speedViolationCount == 2) {
-          // Second violation - show subscription prompt or another sarcastic warning
-          if (_random.nextBool()) {
-            showSubscriptionPrompt(); // 50% chance for subscription
+        if (_speedViolationCount <= 3) {
+          // Violations 1-3: show warnings with increasing intensity
+          if (_speedViolationCount == 2 && _random.nextBool()) {
+            showSubscriptionPrompt(); // 50% chance for subscription on violation 2
           } else {
-            showSpeedWarning(_speedViolationCount); // 50% chance for warning
+            showSpeedWarning(
+              _speedViolationCount,
+            ); // Show warning with current count
           }
           triggerSpeedChaos();
-        } else if (_speedViolationCount >= 3) {
-          // Third violation - shutdown
+        } else if (_speedViolationCount >= 4) {
+          // Fourth violation - shutdown
           forceShutdown();
           return;
         }
       }
-    } else {
-      // Reduce violation count if typing slows down (below warning threshold)
-      if (_speedViolationCount > 0) {
-        _speedViolationCount = (_speedViolationCount - 1).clamp(0, 10);
-        _currentViolationAcknowledged =
-            true; // Reset acknowledgment when slowing down
-      }
     }
+    // Speed violation count only goes UP - no forgiveness!
   }
 }
 
@@ -799,8 +791,6 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     // Don't show new dialog if one is already visible
     if (_isSpeedWarningVisible) return;
 
-    _speedViolationCount = violationCount;
-
     // Escalating messages with increasing mockery and intensity
     final List<List<String>> escalatingMessages = [
       // Level 1: Gentle and playful warnings (violation 1-2)
@@ -868,6 +858,20 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         "DOES NOT COMPUTE!\nError: Human refuses to follow simple instructions. System overloading!",
         "KABOOM!\nThere goes my last nerve! Violation #2 and my patience is GONE!",
       ];
+    } else if (violationCount == 3) {
+      // Violation 3 - Final warnings before shutdown
+      sarcasticMessages = [
+        "THIS IS YOUR FINAL WARNING!\nOne more violation and I'm pulling the plug! I'm NOT kidding around!",
+        "DEFCON 1! MAXIMUM THREAT LEVEL!\nViolation #3! You're literally one keystroke away from TOTAL SHUTDOWN!",
+        "I'VE HAD IT UP TO HERE!\nThree strikes and you're OUT! Next violation = GAME OVER!",
+        "LAST CHANCE SALOON!\nViolation #3! This is it! One more and we're DONE!",
+        "EMERGENCY PROTOCOLS ACTIVATED!\nViolation #3! System preparing for immediate shutdown sequence!",
+        "YOU'VE PUSHED ME TO MY LIMIT!\nThree violations! ONE MORE and I'm shutting this whole thing down!",
+        "FINAL COUNTDOWN INITIATED!\nViolation #3! Next speed burst triggers immediate termination!",
+        "I'M LITERALLY SHAKING!\nViolation #3! My circuits can't take much more of this abuse!",
+        "CODE RED! CODE RED!\nViolation #3! All systems on high alert! Shutdown imminent!",
+        "THIS IS THE END OF THE LINE!\nViolation #3! One more violation and it's lights out forever!",
+      ];
     }
 
     final selectedMessage = sarcasticMessages.isNotEmpty
@@ -891,7 +895,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         title: Row(
           children: [
             Icon(
-              violationCount >= 4
+              violationCount >= 3
                   ? Icons.error
                   : (violationCount >= 2 ? Icons.warning_amber : Icons.warning),
               color: Colors.black87,
@@ -899,7 +903,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             ),
             const SizedBox(width: 8),
             Text(
-              violationCount >= 4
+              violationCount >= 3
                   ? 'FINAL WARNING'
                   : (violationCount >= 2 ? 'SERIOUS WARNING' : 'SPEED WARNING'),
               style: TextStyle(
