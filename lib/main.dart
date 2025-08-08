@@ -8,23 +8,77 @@ import 'package:file_picker/file_picker.dart';
 // ChaosManager handles all the chaos behaviors
 class ChaosManager {
   late Timer _timer;
+  Timer? _idleTimer;
+  Timer? _rapidSwapTimer;
   final Random _random = Random();
   final TextEditingController textController;
   final VoidCallback updateState;
+  DateTime _lastActivity = DateTime.now();
+  bool _isRapidSwapping = false;
 
   ChaosManager({required this.textController, required this.updateState});
 
   void startChaos() {
     _scheduleNextChaos();
+    _startIdleDetection();
   }
 
   void stopChaos() {
     _timer.cancel();
+    _idleTimer?.cancel();
+    _rapidSwapTimer?.cancel();
+  }
+
+  void _startIdleDetection() {
+    _resetIdleTimer();
+  }
+
+  void _resetIdleTimer() {
+    _idleTimer?.cancel();
+    _lastActivity = DateTime.now(); // Track activity time
+
+    // Stop rapid swapping if user becomes active
+    if (_isRapidSwapping) {
+      _stopRapidSwapping();
+    }
+
+    // Start 10-second idle timer
+    _idleTimer = Timer(const Duration(seconds: 10), () {
+      _startRapidSwapping();
+    });
+  }
+
+  void _startRapidSwapping() {
+    if (_isRapidSwapping) return; // Prevent multiple timers
+
+    print("Starting rapid word swapping - user is idle!"); // Debug
+    _isRapidSwapping = true;
+    _rapidSwapTimer = Timer.periodic(const Duration(milliseconds: 500), (
+      timer,
+    ) {
+      // Rapid word swapping every 500ms while idle
+      print("Executing rapid word swap"); // Debug
+      wordSwapping();
+      updateState();
+    });
+  }
+
+  void _stopRapidSwapping() {
+    print("Stopping rapid word swapping - user is active!"); // Debug
+    _isRapidSwapping = false;
+    _rapidSwapTimer?.cancel();
+    _rapidSwapTimer = null;
+  }
+
+  // Call this method whenever user types to reset idle detection
+  void onUserActivity() {
+    print("User activity detected - resetting idle timer"); // Debug
+    _resetIdleTimer();
   }
 
   void _scheduleNextChaos() {
-    // Random interval between 7-15 seconds
-    final int seconds = 7 + _random.nextInt(9); // 7 to 15 seconds
+    // Random interval between 4-8 seconds
+    final int seconds = 4 + _random.nextInt(5); // 4 to 8 seconds
     _timer = Timer(Duration(seconds: seconds), () {
       _executeChaosAction();
       _scheduleNextChaos(); // Schedule the next chaos event
@@ -32,17 +86,45 @@ class ChaosManager {
   }
 
   void _executeChaosAction() {
-    // Adjusted probabilities - letter operations favored over word deletion
-    final chaosActions = <double, VoidCallback>{
-      0.35: () => randomLetterDeletion(), // 35% - High: Remove single letters
-      0.25: () => letterSwapping(), // 25% - High: Swap letters within words
-      0.15: () => cursorTeleportation(), // 15% - Medium: Move cursor randomly
-      0.10: () =>
-          punctuationInjection(), // 10% - Medium: Add random punctuation
-      0.08: () => randomSpaceAddition(), // 8% - Low: Add random spaces
-      0.05: () => wordDeletion(), // 5% - Lower: Remove entire words
-      0.02: () => wordSwapping(), // 2% - Lowest: Swap words between lines
-    };
+    // Get current word count from the text
+    final text = textController.text;
+    final wordCount = text.trim().isEmpty
+        ? 0
+        : text.trim().split(RegExp(r'\s+')).length;
+
+    // Different chaos actions based on word count thresholds
+    Map<double, VoidCallback> chaosActions;
+
+    if (wordCount < 40) {
+      // Early stage: Only gentle chaos (no character replacement yet)
+      chaosActions = <double, VoidCallback>{
+        0.40: () => punctuationInjection(), // 40% - Add punctuation
+        0.30: () => randomSpaceAddition(), // 30% - Add spaces
+        0.20: () => cursorTeleportation(), // 20% - Move cursor
+        0.10: () => randomIndentationChaos(), // 10% - Random indentation
+      };
+    } else if (wordCount < 60) {
+      // Mid stage: Character manipulation begins (40+ words)
+      chaosActions = <double, VoidCallback>{
+        0.35: () => randomLetterDeletion(), // 35% - Remove letters
+        0.25: () => letterSwapping(), // 25% - Swap letters
+        0.15: () => punctuationInjection(), // 15% - Add punctuation
+        0.12: () => cursorTeleportation(), // 12% - Move cursor
+        0.08: () => randomSpaceAddition(), // 8% - Add spaces
+        0.05: () => randomIndentationChaos(), // 5% - Random indentation
+      };
+    } else {
+      // Advanced stage: Full chaos including word deletion (60+ words)
+      chaosActions = <double, VoidCallback>{
+        0.30: () => randomLetterDeletion(), // 30% - Remove letters
+        0.25: () => letterSwapping(), // 25% - Swap letters
+        0.20: () => wordDeletion(), // 20% - Remove words (now active)
+        0.10: () => wordSwapping(), // 10% - Swap words
+        0.08: () => punctuationInjection(), // 8% - Add punctuation
+        0.05: () => randomSpaceAddition(), // 5% - Add spaces
+        0.02: () => randomIndentationChaos(), // 2% - Random indentation
+      };
+    }
 
     // Generate random number and select action based on cumulative probability
     final randomValue = _random.nextDouble();
@@ -181,8 +263,30 @@ class ChaosManager {
 
     final punctuations = ['.', ',', '!', '?', ';', ':'];
     final punctuation = punctuations[_random.nextInt(punctuations.length)];
-    final position = _random.nextInt(text.length + 1);
 
+    // Find all word boundaries and sentence endings
+    List<int> validPositions = [];
+
+    for (int i = 0; i < text.length; i++) {
+      // Add position if it's at the end of a word (followed by space or punctuation)
+      if (i < text.length - 1 &&
+          text[i].contains(RegExp(r'[a-zA-Z0-9]')) &&
+          text[i + 1].contains(RegExp(r'[\s\.,!?;:]'))) {
+        validPositions.add(i + 1);
+      }
+      // Add position if it's at the very end of text
+      else if (i == text.length - 1 &&
+          text[i].contains(RegExp(r'[a-zA-Z0-9]'))) {
+        validPositions.add(i + 1);
+      }
+    }
+
+    // If no valid positions found, add at the end
+    if (validPositions.isEmpty) {
+      validPositions.add(text.length);
+    }
+
+    final position = validPositions[_random.nextInt(validPositions.length)];
     final newText =
         text.substring(0, position) + punctuation + text.substring(position);
     textController.text = newText;
@@ -255,31 +359,28 @@ class ChaosManager {
 
   void wordSwapping() {
     final text = textController.text;
-    final lines = text.split('\n');
-    if (lines.length < 2) return;
+    if (text.trim().isEmpty) return;
 
-    final line1Index = _random.nextInt(lines.length);
-    int line2Index = _random.nextInt(lines.length);
-    while (line2Index == line1Index) {
-      line2Index = _random.nextInt(lines.length);
+    // Split into all words across the entire text
+    final allWords = text.split(RegExp(r'\s+'));
+
+    // Need at least 2 words to swap
+    if (allWords.length < 2) return;
+
+    // Find two different word indices
+    final index1 = _random.nextInt(allWords.length);
+    int index2 = _random.nextInt(allWords.length);
+    while (index2 == index1 && allWords.length > 1) {
+      index2 = _random.nextInt(allWords.length);
     }
 
-    final words1 = lines[line1Index].split(RegExp(r'\s+'));
-    final words2 = lines[line2Index].split(RegExp(r'\s+'));
+    // Swap the words
+    final temp = allWords[index1];
+    allWords[index1] = allWords[index2];
+    allWords[index2] = temp;
 
-    if (words1.isNotEmpty && words2.isNotEmpty) {
-      final word1Index = _random.nextInt(words1.length);
-      final word2Index = _random.nextInt(words2.length);
-
-      final temp = words1[word1Index];
-      words1[word1Index] = words2[word2Index];
-      words2[word2Index] = temp;
-
-      lines[line1Index] = words1.join(' ');
-      lines[line2Index] = words2.join(' ');
-
-      textController.text = lines.join('\n');
-    }
+    // Reconstruct the text maintaining original spacing structure
+    textController.text = allWords.join(' ');
   }
 
   void randomSpaceAddition() {
@@ -293,6 +394,27 @@ class ChaosManager {
     final newText =
         text.substring(0, position) + spaces + text.substring(position);
     textController.text = newText;
+  }
+
+  void randomIndentationChaos() {
+    final text = textController.text;
+    if (text.isEmpty) return;
+
+    final lines = text.split('\n');
+    if (lines.isEmpty) return;
+
+    // Pick a random line to add indentation to
+    final targetLineIndex = _random.nextInt(lines.length);
+
+    // Generate random indentation (1-6 spaces or tabs)
+    final indentationType = _random.nextBool() ? ' ' : '\t';
+    final indentationCount = _random.nextInt(6) + 1;
+    final indentation = indentationType * indentationCount;
+
+    // Add indentation to the beginning of the selected line
+    lines[targetLineIndex] = indentation + lines[targetLineIndex];
+
+    textController.text = lines.join('\n');
   }
 
   // New gentler chaos methods for better user experience
@@ -360,18 +482,29 @@ class ChaosManager {
     final punctuations = ['.', ',', ';']; // Removed !, ?, :
     final punctuation = punctuations[_random.nextInt(punctuations.length)];
 
-    // Try to insert at word boundaries or near spaces for more natural placement
-    final spacePositions = <int>[];
+    // Find all word boundaries and sentence endings (same logic as main punctuation method)
+    List<int> validPositions = [];
+
     for (int i = 0; i < text.length; i++) {
-      if (text[i] == ' ') {
-        spacePositions.add(i);
+      // Add position if it's at the end of a word (followed by space or punctuation)
+      if (i < text.length - 1 &&
+          text[i].contains(RegExp(r'[a-zA-Z0-9]')) &&
+          text[i + 1].contains(RegExp(r'[\s\.,!?;:]'))) {
+        validPositions.add(i + 1);
+      }
+      // Add position if it's at the very end of text
+      else if (i == text.length - 1 &&
+          text[i].contains(RegExp(r'[a-zA-Z0-9]'))) {
+        validPositions.add(i + 1);
       }
     }
 
-    final position = spacePositions.isNotEmpty
-        ? spacePositions[_random.nextInt(spacePositions.length)]
-        : _random.nextInt(text.length + 1);
+    // If no valid positions found, add at the end
+    if (validPositions.isEmpty) {
+      validPositions.add(text.length);
+    }
 
+    final position = validPositions[_random.nextInt(validPositions.length)];
     final newText =
         text.substring(0, position) + punctuation + text.substring(position);
     textController.text = newText;
@@ -2680,6 +2813,8 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                             _isModified = true;
                           });
                           _updateStats();
+                          // Reset idle timer when user types
+                          _chaosManager?.onUserActivity();
                           // Don't call recordKeystroke here to avoid conflicts
                         },
                         style: TextStyle(
