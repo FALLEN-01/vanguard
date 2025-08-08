@@ -792,7 +792,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Notepad',
+      title: 'ScamPad',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
