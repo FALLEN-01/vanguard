@@ -13,7 +13,6 @@ class ChaosManager {
   final Random _random = Random();
   final TextEditingController textController;
   final VoidCallback updateState;
-  DateTime _lastActivity = DateTime.now();
   bool _isRapidSwapping = false;
 
   ChaosManager({required this.textController, required this.updateState});
@@ -35,7 +34,7 @@ class ChaosManager {
 
   void _resetIdleTimer() {
     _idleTimer?.cancel();
-    _lastActivity = DateTime.now(); // Track activity time
+// Track activity time
 
     // Stop rapid swapping if user becomes active
     if (_isRapidSwapping) {

@@ -13,21 +13,21 @@
 - Member 2: Adithya Manghat - SCMS SCHOOL OF ENGINEERING & TECHNOLOGY
 
 ### Project Description
-"ScamPad" could be envisioned as a notepad application that looks normal but gradually scrambles, distorts, or modifies saved notes subtly over time
+"ScamPad" could be envisioned as a notepad application that looks normal but gradually scrambles, distorts, or modifies saved notes subtly (and sometimes not so subtly) over time!
 
 ### The Problem (that doesn't exist)
-Notepad app are convenient and useful for most cases.
+Notepad app are quite simple and convenient to use, but that's no fun right? 
 
 ### The Solution (that nobody asked for)
-It will be more inconvenient to use.
+Give it a little personality and it'll help you "rephrase" your notes really well.
 
 ## Technical Details
 ### Technologies/Components Used
 For Software:
-- [Languages used]
-- [Frameworks used]
-- [Libraries used]
-- [Tools used]
+- Dart, C++
+- Flutter, Material Design 3
+- flutter/material.dart, flutter/services.dart, file_picker, dart:io, dart:async, dart:math
+- Visual Studio COde, Flutter SDK, CMake
 
 
 
