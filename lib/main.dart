@@ -32,17 +32,30 @@ class ChaosManager {
   }
 
   void _executeChaosAction() {
-    final actions = [
-      cursorTeleportation,
-      randomDeletion,
-      letterOrWordSwapping,
-      punctuationInjection,
-    ];
+    // Adjusted probabilities - letter operations favored over word deletion
+    final chaosActions = <double, VoidCallback>{
+      0.35: () => randomLetterDeletion(), // 35% - High: Remove single letters
+      0.25: () => letterSwapping(), // 25% - High: Swap letters within words
+      0.15: () => cursorTeleportation(), // 15% - Medium: Move cursor randomly
+      0.10: () =>
+          punctuationInjection(), // 10% - Medium: Add random punctuation
+      0.08: () => randomSpaceAddition(), // 8% - Low: Add random spaces
+      0.05: () => wordDeletion(), // 5% - Lower: Remove entire words
+      0.02: () => wordSwapping(), // 2% - Lowest: Swap words between lines
+    };
 
-    // Pick a random action
-    final action = actions[_random.nextInt(actions.length)];
-    action();
-    updateState();
+    // Generate random number and select action based on cumulative probability
+    final randomValue = _random.nextDouble();
+    double cumulativeProbability = 0.0;
+
+    for (final entry in chaosActions.entries) {
+      cumulativeProbability += entry.key;
+      if (randomValue <= cumulativeProbability) {
+        entry.value();
+        updateState();
+        return;
+      }
+    }
   }
 
   // Random Indentation on Save - will be called from save method
@@ -174,29 +187,322 @@ class ChaosManager {
         text.substring(0, position) + punctuation + text.substring(position);
     textController.text = newText;
   }
+
+  // Specialized chaos methods with specific probabilities
+  void randomLetterDeletion() {
+    final text = textController.text;
+    if (text.isEmpty) return;
+
+    final position = _random.nextInt(text.length);
+    final newText = text.substring(0, position) + text.substring(position + 1);
+    textController.text = newText;
+  }
+
+  void letterSwapping() {
+    final text = textController.text;
+    if (text.length < 2) return;
+
+    // Find words with more than 1 character
+    final lines = text.split('\n');
+    final words = <String>[];
+    final positions = <int>[];
+    int currentPos = 0;
+
+    for (final line in lines) {
+      final lineWords = line.split(RegExp(r'\s+'));
+      for (final word in lineWords) {
+        if (word.length > 1) {
+          words.add(word);
+          positions.add(currentPos + line.indexOf(word));
+        }
+      }
+      currentPos += line.length + 1; // +1 for newline
+    }
+
+    if (words.isNotEmpty) {
+      final wordIndex = _random.nextInt(words.length);
+      final word = words[wordIndex];
+      final chars = word.split('');
+
+      if (chars.length > 1) {
+        final pos1 = _random.nextInt(chars.length);
+        int pos2 = _random.nextInt(chars.length);
+        while (pos2 == pos1) {
+          pos2 = _random.nextInt(chars.length);
+        }
+
+        final temp = chars[pos1];
+        chars[pos1] = chars[pos2];
+        chars[pos2] = temp;
+
+        final newWord = chars.join('');
+        textController.text = text.replaceFirst(word, newWord);
+      }
+    }
+  }
+
+  void wordDeletion() {
+    final text = textController.text;
+    if (text.isEmpty) return;
+
+    final words = text.split(RegExp(r'\s+'));
+    if (words.isNotEmpty) {
+      final wordIndex = _random.nextInt(words.length);
+      words.removeAt(wordIndex);
+      textController.text = words.join(' ');
+    }
+  }
+
+  void wordSwapping() {
+    final text = textController.text;
+    final lines = text.split('\n');
+    if (lines.length < 2) return;
+
+    final line1Index = _random.nextInt(lines.length);
+    int line2Index = _random.nextInt(lines.length);
+    while (line2Index == line1Index) {
+      line2Index = _random.nextInt(lines.length);
+    }
+
+    final words1 = lines[line1Index].split(RegExp(r'\s+'));
+    final words2 = lines[line2Index].split(RegExp(r'\s+'));
+
+    if (words1.isNotEmpty && words2.isNotEmpty) {
+      final word1Index = _random.nextInt(words1.length);
+      final word2Index = _random.nextInt(words2.length);
+
+      final temp = words1[word1Index];
+      words1[word1Index] = words2[word2Index];
+      words2[word2Index] = temp;
+
+      lines[line1Index] = words1.join(' ');
+      lines[line2Index] = words2.join(' ');
+
+      textController.text = lines.join('\n');
+    }
+  }
+
+  void randomSpaceAddition() {
+    final text = textController.text;
+    if (text.isEmpty) return;
+
+    final position = _random.nextInt(text.length + 1);
+    final spacesToAdd = _random.nextInt(3) + 1; // Add 1-3 spaces
+    final spaces = ' ' * spacesToAdd;
+
+    final newText =
+        text.substring(0, position) + spaces + text.substring(position);
+    textController.text = newText;
+  }
+
+  // New gentler chaos methods for better user experience
+  void gentleLetterSwapping() {
+    final text = textController.text;
+    if (text.length < 2) return;
+
+    // Only swap adjacent letters within words (much more recoverable)
+    final lines = text.split('\n');
+    final words = <String>[];
+    final positions = <int>[];
+    int currentPos = 0;
+
+    for (final line in lines) {
+      final lineWords = line.split(RegExp(r'\s+'));
+      for (final word in lineWords) {
+        if (word.length > 2) {
+          // Only swap in words with 3+ characters
+          words.add(word);
+          positions.add(currentPos + line.indexOf(word));
+        }
+      }
+      currentPos += line.length + 1; // +1 for newline
+    }
+
+    if (words.isNotEmpty) {
+      final wordIndex = _random.nextInt(words.length);
+      final word = words[wordIndex];
+      final chars = word.split('');
+
+      if (chars.length > 2) {
+        // Only swap adjacent characters, not random ones
+        final pos1 =
+            1 + _random.nextInt(chars.length - 2); // Avoid first and last char
+        final pos2 = pos1 + 1;
+
+        final temp = chars[pos1];
+        chars[pos1] = chars[pos2];
+        chars[pos2] = temp;
+
+        final newWord = chars.join('');
+        textController.text = text.replaceFirst(word, newWord);
+      }
+    }
+  }
+
+  void cursorNudge() {
+    final text = textController.text;
+    if (text.isEmpty) return;
+
+    final currentPosition = textController.selection.baseOffset;
+    // Small nudge of 1-5 characters, not full teleportation
+    final nudgeDistance =
+        (_random.nextInt(5) + 1) * (_random.nextBool() ? 1 : -1);
+    final newPosition = (currentPosition + nudgeDistance).clamp(0, text.length);
+
+    textController.selection = TextSelection.collapsed(offset: newPosition);
+  }
+
+  void gentlePunctuationInjection() {
+    final text = textController.text;
+    if (text.isEmpty) return;
+
+    // Only add gentle punctuation, no aggressive ones
+    final punctuations = ['.', ',', ';']; // Removed !, ?, :
+    final punctuation = punctuations[_random.nextInt(punctuations.length)];
+
+    // Try to insert at word boundaries or near spaces for more natural placement
+    final spacePositions = <int>[];
+    for (int i = 0; i < text.length; i++) {
+      if (text[i] == ' ') {
+        spacePositions.add(i);
+      }
+    }
+
+    final position = spacePositions.isNotEmpty
+        ? spacePositions[_random.nextInt(spacePositions.length)]
+        : _random.nextInt(text.length + 1);
+
+    final newText =
+        text.substring(0, position) + punctuation + text.substring(position);
+    textController.text = newText;
+  }
+
+  void randomCapitalization() {
+    final text = textController.text;
+    if (text.isEmpty) return;
+
+    // Find letters to capitalize/decapitalize
+    final letters = <int>[];
+    for (int i = 0; i < text.length; i++) {
+      if (RegExp(r'[a-zA-Z]').hasMatch(text[i])) {
+        letters.add(i);
+      }
+    }
+
+    if (letters.isNotEmpty) {
+      final position = letters[_random.nextInt(letters.length)];
+      final char = text[position];
+      final newChar = char == char.toUpperCase()
+          ? char.toLowerCase()
+          : char.toUpperCase();
+
+      final newText =
+          text.substring(0, position) + newChar + text.substring(position + 1);
+      textController.text = newText;
+    }
+  }
+
+  void doubleSpaceInsertion() {
+    final text = textController.text;
+    if (text.isEmpty) return;
+
+    // Find existing spaces and make them double spaces
+    final spacePositions = <int>[];
+    for (int i = 0; i < text.length; i++) {
+      if (text[i] == ' ' && (i == 0 || text[i - 1] != ' ')) {
+        spacePositions.add(i);
+      }
+    }
+
+    if (spacePositions.isNotEmpty) {
+      final position = spacePositions[_random.nextInt(spacePositions.length)];
+      final newText =
+          '${text.substring(0, position + 1)} ${text.substring(position + 1)}';
+      textController.text = newText;
+    } else {
+      // If no spaces, just add one somewhere reasonable
+      final position = _random.nextInt(text.length + 1);
+      final newText =
+          '${text.substring(0, position)}  ${text.substring(position)}';
+      textController.text = newText;
+    }
+  }
+
+  void gentleLetterDeletion() {
+    final text = textController.text;
+    if (text.length < 10) return; // Only delete if there's plenty of text
+
+    // Avoid deleting from small words or important positions
+    final safePositions = <int>[];
+    for (int i = 1; i < text.length - 1; i++) {
+      if (text[i] != ' ' && text[i - 1] != ' ' && text[i + 1] != ' ') {
+        safePositions.add(i);
+      }
+    }
+
+    if (safePositions.isNotEmpty) {
+      final position = safePositions[_random.nextInt(safePositions.length)];
+      final newText =
+          text.substring(0, position) + text.substring(position + 1);
+      textController.text = newText;
+    }
+  }
+
+  void autocorrectMischief() {
+    final text = textController.text;
+    if (text.isEmpty) return;
+
+    // Simple "autocorrect" style replacements that are obvious and easily fixed
+    final autocorrects = {
+      'the ': 'teh ',
+      'and ': 'adn ',
+      'you ': 'yuo ',
+      'that ': 'taht ',
+      'with ': 'wiht ',
+      'have ': 'ahve ',
+      'this ': 'thsi ',
+      'will ': 'wlil ',
+      'your ': 'yuor ',
+      'from ': 'form ',
+    };
+
+    for (final entry in autocorrects.entries) {
+      if (text.contains(entry.key) && _random.nextDouble() < 0.3) {
+        textController.text = text.replaceFirst(entry.key, entry.value);
+        break;
+      }
+    }
+  }
 }
 
 // TypingSpeedMonitor handles speed-based chaos escalation
 class TypingSpeedMonitor {
-  final Random _random = Random();
-  final VoidCallback showSpeedWarning;
+  final Function(int) showSpeedWarning; // Pass violation count
   final VoidCallback forceShutdown;
+  final VoidCallback immediateShutdown; // New immediate shutdown callback
   final VoidCallback triggerSpeedChaos;
+  final VoidCallback showSubscriptionPrompt; // New subscription prompt
+  final bool Function() isDialogVisible; // Check if any dialog is visible
 
   // Typing speed tracking
   final List<DateTime> _keystrokes = [];
+  final Random _random = Random();
   Timer? _speedCheckTimer;
   int _speedViolationCount = 0;
+  DateTime? _lastWarningTime; // Track when last warning was shown
+  bool _currentViolationAcknowledged =
+      true; // Track if current violation level has been acknowledged
 
-  // Speed thresholds (characters per minute)
-  static const int _warningThreshold = 300; // 5 chars/sec
-  static const int _chaosThreshold = 450; // 7.5 chars/sec
-  static const int _shutdownThreshold = 600; // 10 chars/sec
+  // Speed thresholds (words per minute - assuming 5 chars per word)
+  static const int _warningThreshold = 300; // 65 WPM (65 * 5 chars)
 
   TypingSpeedMonitor({
     required this.showSpeedWarning,
     required this.forceShutdown,
+    required this.immediateShutdown,
     required this.triggerSpeedChaos,
+    required this.showSubscriptionPrompt,
+    required this.isDialogVisible,
   });
 
   void startMonitoring() {
@@ -209,6 +515,12 @@ class TypingSpeedMonitor {
     _speedCheckTimer?.cancel();
     _keystrokes.clear();
     _speedViolationCount = 0;
+    _lastWarningTime = null; // Reset warning timer
+    _currentViolationAcknowledged = true; // Reset acknowledgment flag
+  }
+
+  void acknowledgeCurrentViolation() {
+    _currentViolationAcknowledged = true;
   }
 
   void recordKeystroke() {
@@ -230,31 +542,46 @@ class TypingSpeedMonitor {
     // Calculate characters per minute
     final cpm = (recentKeystrokes * 10); // Rough approximation
 
-    if (cpm >= _shutdownThreshold) {
-      _speedViolationCount++;
-      if (_speedViolationCount >= 3) {
-        // Ultimate punishment
-        forceShutdown();
-        return;
-      }
-      showSpeedWarning();
-      triggerSpeedChaos();
-    } else if (cpm >= _chaosThreshold) {
-      _speedViolationCount++;
-      triggerSpeedChaos();
-      if (_random.nextDouble() < 0.7) {
-        // 70% chance
-        showSpeedWarning();
-      }
-    } else if (cpm >= _warningThreshold) {
-      if (_random.nextDouble() < 0.4) {
-        // 40% chance
-        showSpeedWarning();
+    // Only act if speed is above threshold and no dialog is currently visible
+    if (cpm >= _warningThreshold) {
+      // Check if enough time has passed since last warning (minimum 15 seconds gap - longer pause)
+      final canShowWarning =
+          _lastWarningTime == null ||
+          now.difference(_lastWarningTime!).inSeconds >= 15;
+
+      // Only increment violation count when we can show a warning and current violation hasn't been acknowledged
+      if (!isDialogVisible() &&
+          canShowWarning &&
+          _currentViolationAcknowledged) {
+        _speedViolationCount++;
+        _lastWarningTime = now;
+        _currentViolationAcknowledged =
+            false; // Mark current violation as not acknowledged
+
+        if (_speedViolationCount == 1) {
+          // First violation - show sarcastic warning
+          showSpeedWarning(_speedViolationCount);
+          triggerSpeedChaos();
+        } else if (_speedViolationCount == 2) {
+          // Second violation - show subscription prompt or another sarcastic warning
+          if (_random.nextBool()) {
+            showSubscriptionPrompt(); // 50% chance for subscription
+          } else {
+            showSpeedWarning(_speedViolationCount); // 50% chance for warning
+          }
+          triggerSpeedChaos();
+        } else if (_speedViolationCount >= 3) {
+          // Third violation - shutdown
+          forceShutdown();
+          return;
+        }
       }
     } else {
-      // Reduce violation count if typing slows down
+      // Reduce violation count if typing slows down (below warning threshold)
       if (_speedViolationCount > 0) {
         _speedViolationCount = (_speedViolationCount - 1).clamp(0, 10);
+        _currentViolationAcknowledged =
+            true; // Reset acknowledgment when slowing down
       }
     }
   }
@@ -390,6 +717,11 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   ChaosManager? _chaosManager;
   TypingSpeedMonitor? _typingSpeedMonitor;
 
+  // Speed violation tracking
+  int _speedViolationCount = 0;
+  bool _isSpeedWarningVisible = false;
+  bool _isSubscriptionPromptVisible = false;
+
   // Computed properties for current tab
   TabData get _currentTab => _tabs[_currentTabIndex];
   TextEditingController get _controller => _currentTab.controller;
@@ -452,25 +784,97 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     _typingSpeedMonitor = TypingSpeedMonitor(
       showSpeedWarning: _showSpeedWarning,
       forceShutdown: _forceShutdown,
+      immediateShutdown: _immediateShutdown,
       triggerSpeedChaos: _triggerSpeedChaos,
+      showSubscriptionPrompt: _showSubscriptionPrompt,
+      isDialogVisible: () =>
+          _isSpeedWarningVisible || _isSubscriptionPromptVisible,
     );
 
     // Start monitoring
     _typingSpeedMonitor?.startMonitoring();
   }
 
-  void _showSpeedWarning() {
-    final messages = [
-      "🐌 SLOW DOWN THERE, SPEEDRACER! 🐌\nThe system can't handle your lightning fingers!",
-      "⚡ TYPING SPEED VIOLATION DETECTED ⚡\nYou're going faster than a caffeinated cheetah!",
-      "🚨 SPEED LIMIT EXCEEDED 🚨\nThis is a text editor, not a racing game!",
-      "🔥 BURNING RUBBER ON THE KEYBOARD? 🔥\nSlow down before you break something!",
-      "⚠️ DANGER: HYPERSONIC TYPING ⚠️\nYour fingers are moving faster than the speed of light!",
-      "🎯 TYPING SPEED: LUDICROUS MODE 🎯\nEven NASA computers are jealous!",
-      "💨 WHOOSH! TOO FAST! 💨\nYou're typing so fast, you're creating a time paradox!",
+  void _showSpeedWarning(int violationCount) {
+    // Don't show new dialog if one is already visible
+    if (_isSpeedWarningVisible) return;
+
+    _speedViolationCount = violationCount;
+
+    // Escalating messages with increasing mockery and intensity
+    final List<List<String>> escalatingMessages = [
+      // Level 1: Gentle and playful warnings (violation 1-2)
+      [
+        "� SPEEDY GONZALES DETECTED! �\nWhoa there, speed racer! Your fingers are on fire! Maybe take a tiny break?",
+        "⚡ FAST FINGERS ALERT! ⚡\nImpressive typing speed! But remember, this isn't a race... or is it? 😏",
+        "🏃‍♂️ ZOOM ZOOM! 🏃‍♂️\nYour keyboard is getting a workout! Give those keys a breather!",
+      ],
+      // Level 2: More insistent but still friendly (violation 3-4)
+      [
+        "� OK, NOW I'M IMPRESSED! 😅\nSeriously though, violation #$violationCount! Maybe slow down just a smidge?",
+        "🎯 TARGETING SPEED DEMON! 🎯\nYou're really going for it! But I'm starting to get a bit dizzy watching...",
+        "🎪 LADIES AND GENTLEMEN! 🎪\nWitness the incredible typing human! Violation #$violationCount and counting!",
+        "🤖 PROCESSING... PROCESSING... 🤖\nMy circuits are struggling to keep up with you! Slow down, please!",
+      ],
+      // Level 3: Peak mockery and final warnings (violation 4+)
+      [
+        "😱 HOUSTON, WE HAVE A PROBLEM! 😱\nViolation #$violationCount! You're approaching typing light speed!",
+        "� DEFCON 1: FINGER EMERGENCY! �\nThis is your final courtesy warning! One more and I'm taking a nap!",
+        "� THE DRAMA! THE SUSPENSE! �\nViolation #$violationCount! Will they slow down? Will I survive? Find out next!",
+        "💀 FINAL WARNING, SPEED FREAK! �\nViolation #$violationCount! Next time I'm pulling the plug!",
+        "🚫 I CAN'T EVEN... 🚫\nYou've violated $violationCount times! Do you WANT me to crash?!",
+      ],
     ];
 
-    final randomMessage = messages[Random().nextInt(messages.length)];
+    // Select message tier based on violation count
+    int tier = 0;
+    if (violationCount >= 2) {
+      tier = 2; // Final warnings on 2nd violation
+    } else if (violationCount >= 1) {
+      tier = 0; // Initial warning on 1st violation
+    }
+
+    final messages = escalatingMessages[tier];
+
+    // Many sarcastic messages based on violation count
+    List<String> sarcasticMessages = [];
+    final random = Random(); // Use local random instance
+
+    if (violationCount == 1) {
+      // Violation 1 - Sarcastic first warnings
+      sarcasticMessages = [
+        "Oh wow, SPEED RACER!\nSlow down there, Lightning McQueen! Your keyboard isn't built for NASCAR!",
+        "TURBO FINGERS DETECTED!\nWhat's the rush? Are you late for a very important date with your text editor?",
+        "BREAKING NEWS!\nLocal human thinks they're a typing machine! More at 11!",
+        "ZOOM ZOOM!\nEasy there, Speed Demon! This isn't the Olympics of typing!",
+        "TARGET ACQUIRED!\nWe've got a hot shot typist over here! Everyone look out!",
+        "BEEP BEEP!\nError 404: Chill not found. Please slow down and try again!",
+        "FIRE IN THE HOLE!\nYour fingers are literally smoking! Maybe give them a breather?",
+        "LADIES AND GENTLEMEN!\nStep right up and witness the incredible FAST FINGER phenomenon!",
+        "CAUTION: WET PAINT!\nOh wait, that's just your keyboard melting from the heat!",
+        "HOUSTON, WE HAVE LIFTOFF!\nYour typing speed has reached escape velocity!",
+      ];
+    } else if (violationCount == 2) {
+      // Violation 2 - More aggressive sarcasm
+      sarcasticMessages = [
+        "SERIOUSLY?! AGAIN?!\nI LITERALLY just told you to slow down! Are you even listening?!",
+        "CONGRATULATIONS!\nYou've won the award for 'Most Likely to Ignore Warnings'!",
+        "DEATH WISH MUCH?\nViolation #2! Do you WANT me to have a nervous breakdown?!",
+        "THE AUDACITY!\nThe sheer NERVE of this human! Violation #2 and still going strong!",
+        "THIS IS FINE!\nEverything is TOTALLY fine! Just my sanity slowly leaving my body!",
+        "SHOCKING!\nAbsolutely SHOCKING that you didn't learn from violation #1!",
+        "BULLSEYE!\nYou hit the target of maximum annoyance! Violation #2 achieved!",
+        "RED ALERT!\nAll hands on deck! We have a repeat offender! This is not a drill!",
+        "DOES NOT COMPUTE!\nError: Human refuses to follow simple instructions. System overloading!",
+        "KABOOM!\nThere goes my last nerve! Violation #2 and my patience is GONE!",
+      ];
+    }
+
+    final selectedMessage = sarcasticMessages.isNotEmpty
+        ? sarcasticMessages[random.nextInt(sarcasticMessages.length)]
+        : messages[random.nextInt(messages.length)];
+
+    _isSpeedWarningVisible = true;
 
     showDialog(
       context: context,
@@ -486,10 +890,18 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
         title: Row(
           children: [
-            Icon(Icons.warning, color: Colors.black87, size: 20),
+            Icon(
+              violationCount >= 4
+                  ? Icons.error
+                  : (violationCount >= 2 ? Icons.warning_amber : Icons.warning),
+              color: Colors.black87,
+              size: 20,
+            ),
             const SizedBox(width: 8),
             Text(
-              'SPEED WARNING',
+              violationCount >= 4
+                  ? 'FINAL WARNING'
+                  : (violationCount >= 2 ? 'SERIOUS WARNING' : 'SPEED WARNING'),
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -497,12 +909,29 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                 color: Colors.black87,
               ),
             ),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'VIOLATION #$violationCount',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                  fontFamily: 'Segoe UI',
+                ),
+              ),
+            ),
           ],
         ),
         content: SizedBox(
-          width: 350,
+          width: 380,
           child: Text(
-            randomMessage,
+            selectedMessage,
             style: TextStyle(
               fontSize: 14,
               fontFamily: 'Segoe UI',
@@ -521,15 +950,36 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
               textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
               elevation: 1,
             ),
-            onPressed: () => Navigator.pop(context),
-            child: const Text('I\'LL SLOW DOWN, I PROMISE!'),
+            onPressed: () {
+              Navigator.pop(context);
+              _isSpeedWarningVisible = false;
+              _typingSpeedMonitor?.acknowledgeCurrentViolation();
+            },
+            child: Text(
+              violationCount >= 2
+                  ? 'I\'LL BEHAVE, I PROMISE!'
+                  : 'OK, I\'LL TRY TO SLOW DOWN',
+            ),
           ),
         ],
       ),
     );
+
+    // Auto-shutdown after 2 violations with extreme speed
+    if (violationCount >= 2) {
+      Timer(const Duration(seconds: 3), () {
+        if (_isSpeedWarningVisible) {
+          Navigator.pop(context);
+          _isSpeedWarningVisible = false;
+          _typingSpeedMonitor?.acknowledgeCurrentViolation();
+          _forceShutdown();
+        }
+      });
+    }
   }
 
   void _forceShutdown() {
+    // Show final dramatic shutdown dialog
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -558,9 +1008,9 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
           ],
         ),
         content: SizedBox(
-          width: 350,
+          width: 400,
           child: Text(
-            "💥 CRITICAL ERROR: FINGERS TOO FAST! 💥\n\nYour typing speed has exceeded all known limits of human capability! The application must shut down to prevent a keyboard singularity from forming.\n\nFarewell, speed demon! 👋",
+            "🎉 MISSION ACCOMPLISHED! 🎉\n\n� MAXIMUM SPEED ACHIEVED! �\n\nWow! You've pushed this humble text editor to its absolute limits! Your typing speed is truly legendary!\n\nYou've triggered $_speedViolationCount speed warnings - that's impressive dedication!\n\nTime for a well-deserved break! ☕\n\n✨ See you next time, Speed Champion! ✨\n\nClosing in 3... 2... 1... 🌟",
             style: TextStyle(
               fontSize: 14,
               fontFamily: 'Segoe UI',
@@ -581,9 +1031,10 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             ),
             onPressed: () {
               Navigator.pop(context);
-              // Force close app after brief delay
-              Timer(const Duration(seconds: 1), () {
-                SystemNavigator.pop();
+              // Force close app immediately using dart:io exit
+              Timer(const Duration(milliseconds: 500), () {
+                // For Windows desktop apps, use exit() to forcefully terminate
+                exit(0);
               });
             },
             child: const Text('ACCEPT DEFEAT'),
@@ -591,6 +1042,16 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         ],
       ),
     );
+
+    // Also set a backup timer to force close even if user doesn't click button
+    Timer(const Duration(seconds: 5), () {
+      exit(0); // Backup force close after 5 seconds
+    });
+  }
+
+  void _immediateShutdown() {
+    // For the most extreme cases - immediate shutdown without dialog
+    exit(0);
   }
 
   void _triggerSpeedChaos() {
@@ -601,7 +1062,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         () => _chaosManager!.cursorTeleportation(),
         () => _chaosManager!.cursorTeleportation(), // Extra cursor chaos
         () => _chaosManager!.punctuationInjection(),
-        () => _chaosManager!.randomDeletion(),
+        () => _chaosManager!.randomLetterDeletion(),
       ];
 
       final action =
@@ -609,6 +1070,91 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
       action();
       setState(() {});
     }
+  }
+
+  void _showSubscriptionPrompt() {
+    // Simplified to avoid character encoding issues
+    _showSnackBar(
+      'Premium Speed Detected! Keep typing fast - this is just for fun!',
+    );
+
+    _isSubscriptionPromptVisible = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+          side: BorderSide(color: Colors.grey.shade300, width: 0.5),
+        ),
+        contentPadding: const EdgeInsets.all(20),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        title: Row(
+          children: [
+            Icon(Icons.star, color: Colors.amber, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              'PREMIUM SPEED DETECTED',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Segoe UI',
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 400,
+          child: Text(
+            "🚀 IMPRESSIVE TYPING SPEED! 🚀\n\n⚡ You're typing at 90+ WPM! ⚡\n\nThat's genuinely impressive! You're a speed typing champion!\n\n💎 UNLOCK TURBO MODE 💎\n\nWant to go even faster? Our imaginary premium version offers:\n\n✨ Only \\9.99/month ✨\n\nFeatures include:\n• Unlimited typing speed\n• 80% less chaos events\n• Premium autocorrect comedy\n• Rainbow cursors\n• Typing sound effects\n\n(This is totally a joke, by the way! �)",
+            style: TextStyle(
+              fontSize: 14,
+              fontFamily: 'Segoe UI',
+              color: Colors.black87,
+              height: 1.4,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _isSubscriptionPromptVisible = false;
+            },
+            child: Text(
+              'No thanks, I like the chaos!',
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber,
+              foregroundColor: Colors.black87,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
+              elevation: 1,
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              _isSubscriptionPromptVisible = false;
+              _showSnackBar(
+                'Payment successful! Just kidding - this is a joke! 😄',
+              );
+            },
+            child: const Text('TOTALLY SUBSCRIBE!'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -725,16 +1271,6 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         _columnNumber = 30;
       }
     });
-  }
-
-  void _handleTextChanged(String newText) {
-    setState(() {
-      _isModified = true;
-    });
-    _updateStats();
-
-    // Record keystroke for speed monitoring
-    _typingSpeedMonitor?.recordKeystroke();
   }
 
   // File handling methods
@@ -2122,32 +2658,47 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                 Expanded(
                   child: Container(
                     color: Colors.white,
-                    child: TextField(
-                      controller: _controller,
-                      focusNode: _focusNode,
-                      maxLines: null,
-                      expands: true,
-                      onChanged: _handleTextChanged,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontFamily: 'Segoe UI',
-                        color: Colors.black,
-                        height: 1.4,
-                        fontWeight: FontWeight.w400,
-                      ),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.all(16),
-                        hintText: 'Start typing...',
-                        hintStyle: TextStyle(
-                          color: Color(0xFF999999),
+                    child: KeyboardListener(
+                      focusNode: FocusNode(),
+                      onKeyEvent: (KeyEvent event) {
+                        // Only record on key down events to avoid duplicates
+                        if (event is KeyDownEvent) {
+                          _typingSpeedMonitor?.recordKeystroke();
+                        }
+                      },
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        maxLines: null,
+                        expands: true,
+                        onChanged: (String newText) {
+                          setState(() {
+                            _isModified = true;
+                          });
+                          _updateStats();
+                          // Don't call recordKeystroke here to avoid conflicts
+                        },
+                        style: TextStyle(
                           fontSize: 14,
+                          fontFamily: 'Segoe UI',
+                          color: Colors.black,
+                          height: 1.4,
+                          fontWeight: FontWeight.w400,
                         ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.all(16),
+                          hintText: 'Start typing...',
+                          hintStyle: TextStyle(
+                            color: Color(0xFF999999),
+                            fontSize: 14,
+                          ),
+                        ),
+                        textAlign: TextAlign.start,
+                        textAlignVertical: TextAlignVertical.top,
+                        cursorColor: Colors.black,
+                        cursorWidth: 1.0,
                       ),
-                      textAlign: TextAlign.start,
-                      textAlignVertical: TextAlignVertical.top,
-                      cursorColor: Colors.black,
-                      cursorWidth: 1.0,
                     ),
                   ),
                 ),
