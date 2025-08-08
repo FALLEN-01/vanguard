@@ -286,7 +286,7 @@ class ModernNotepadPage extends StatefulWidget {
 
 class _ModernNotepadPageState extends State<ModernNotepadPage> {
   // Tab management
-  List<TabData> _tabs = [];
+  final List<TabData> _tabs = [];
   int _currentTabIndex = 0;
 
   final TextEditingController _searchController = TextEditingController();
@@ -294,7 +294,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
   // Find/Replace functionality
   int _currentSearchIndex = -1;
-  List<int> _searchResults = [];
+  final List<int> _searchResults = [];
 
   // Text formatting state
   bool _isBold = false;
@@ -302,7 +302,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   bool _isUnderline = false;
 
   // Chaos mode state
-  bool _isChaosEnabled = false;
+  final bool _isChaosEnabled = false;
   ChaosManager? _chaosManager;
 
   // Computed properties for current tab
@@ -554,22 +554,73 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Go to Line'),
-        content: TextField(
-          decoration: const InputDecoration(hintText: 'Enter line number'),
-          keyboardType: TextInputType.number,
-          onSubmitted: (value) {
-            final lineNum = int.tryParse(value);
-            if (lineNum != null && lineNum > 0) {
-              _jumpToLine(lineNum);
-            }
-            Navigator.pop(context);
-          },
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(6),
+          side: BorderSide(color: Colors.grey.shade300, width: 1),
+        ),
+        contentPadding: const EdgeInsets.all(16),
+        titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        title: Row(
+          children: [
+            Icon(Icons.linear_scale, color: Colors.blue, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              'Go to Line',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Segoe UI',
+                color: Colors.grey.shade800,
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 280,
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Enter line number',
+              hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: const BorderSide(color: Colors.blue, width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+            ),
+            style: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
+            keyboardType: TextInputType.number,
+            autofocus: true,
+            onSubmitted: (value) {
+              final lineNum = int.tryParse(value);
+              if (lineNum != null && lineNum > 0) {
+                _jumpToLine(lineNum);
+              }
+              Navigator.pop(context);
+            },
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            ),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: 13,
+                fontFamily: 'Segoe UI',
+                color: Colors.grey.shade600,
+              ),
+            ),
           ),
         ],
       ),
@@ -614,52 +665,94 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(6),
           side: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
-        title: const Row(
+        contentPadding: const EdgeInsets.all(16),
+        titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        title: Row(
           children: [
-            Icon(Icons.search, color: Colors.blue, size: 20),
-            SizedBox(width: 8),
-            Text('Find', style: TextStyle(fontWeight: FontWeight.w600)),
+            Icon(Icons.search, color: Colors.blue, size: 16),
+            const SizedBox(width: 6),
+            Text(
+              'Find',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Segoe UI',
+                color: Colors.grey.shade800,
+              ),
+            ),
           ],
         ),
-        content: TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Enter text to find...',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey.shade300),
+        content: SizedBox(
+          width: 300,
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Enter text to find...',
+              hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(6),
+                borderSide: const BorderSide(color: Colors.blue, width: 2),
+              ),
+              prefixIcon: Icon(
+                Icons.search,
+                color: Colors.grey.shade600,
+                size: 18,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
             ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.blue, width: 2),
-            ),
-            prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
+            style: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
+            autofocus: true,
+            onSubmitted: (_) => _performSearch(),
           ),
-          autofocus: true,
-          onSubmitted: (_) => _performSearch(),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            ),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: 13,
+                fontFamily: 'Segoe UI',
+                color: Colors.grey.shade600,
+              ),
+            ),
           ),
           ElevatedButton.icon(
-            icon: const Icon(Icons.search_outlined, size: 16),
+            icon: const Icon(Icons.search_outlined, size: 14),
             label: const Text('Find All'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
+              elevation: 2,
+            ),
             onPressed: () {
               _performSearch();
               Navigator.pop(context);
             },
           ),
           ElevatedButton.icon(
-            icon: const Icon(Icons.arrow_forward, size: 16),
+            icon: const Icon(Icons.arrow_forward, size: 14),
             label: const Text('Find Next'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
+              elevation: 2,
             ),
             onPressed: () {
               _performSearch();
@@ -678,72 +771,127 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
       builder: (context) => AlertDialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(6),
           side: BorderSide(color: Colors.grey.shade300, width: 1),
         ),
-        title: const Row(
+        contentPadding: const EdgeInsets.all(16),
+        titlePadding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        title: Row(
           children: [
-            Icon(Icons.find_replace, color: Colors.blue, size: 20),
-            SizedBox(width: 8),
+            Icon(Icons.find_replace, color: Colors.blue, size: 16),
+            const SizedBox(width: 6),
             Text(
               'Find and Replace',
-              style: TextStyle(fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Segoe UI',
+                color: Colors.grey.shade800,
+              ),
             ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Find',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+        content: SizedBox(
+          width: 300,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  labelText: 'Find',
+                  labelStyle: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Colors.blue, width: 2),
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: Colors.grey.shade600,
+                    size: 18,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Colors.blue, width: 2),
-                ),
-                prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
+                style: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _replaceController,
-              decoration: InputDecoration(
-                labelText: 'Replace with',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _replaceController,
+                decoration: InputDecoration(
+                  labelText: 'Replace with',
+                  labelStyle: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey.shade600,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(6),
+                    borderSide: const BorderSide(color: Colors.blue, width: 2),
+                  ),
+                  prefixIcon: Icon(
+                    Icons.edit,
+                    color: Colors.grey.shade600,
+                    size: 18,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Colors.blue, width: 2),
-                ),
-                prefixIcon: Icon(Icons.edit, color: Colors.grey.shade600),
+                style: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            ),
+            child: Text(
+              'Cancel',
+              style: TextStyle(
+                fontSize: 13,
+                fontFamily: 'Segoe UI',
+                color: Colors.grey.shade600,
+              ),
+            ),
           ),
           ElevatedButton.icon(
-            icon: const Icon(Icons.search_outlined, size: 16),
+            icon: const Icon(Icons.search_outlined, size: 14),
             label: const Text('Find All'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
+              elevation: 2,
+            ),
             onPressed: () {
               _performSearch();
               Navigator.pop(context);
             },
           ),
           ElevatedButton.icon(
-            icon: const Icon(Icons.swap_horiz, size: 16),
+            icon: const Icon(Icons.swap_horiz, size: 14),
             label: const Text('Replace'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
               foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
+              elevation: 2,
             ),
             onPressed: () {
               _replaceSelected();
@@ -751,11 +899,14 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             },
           ),
           ElevatedButton.icon(
-            icon: const Icon(Icons.swap_vert, size: 16),
+            icon: const Icon(Icons.swap_vert, size: 14),
             label: const Text('Replace All'),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              textStyle: const TextStyle(fontSize: 13, fontFamily: 'Segoe UI'),
+              elevation: 2,
             ),
             onPressed: () {
               _replaceAll();
@@ -959,7 +1110,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
           _isModified = false;
         });
 
-        _showSnackBar('File saved as ${_currentFileName}');
+        _showSnackBar('File saved as $_currentFileName');
       }
     } catch (e) {
       _showSnackBar('Error saving file: $e');
@@ -1243,12 +1394,13 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                             popupMenuTheme: PopupMenuThemeData(
                               color: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(6),
                                 side: BorderSide(
                                   color: Colors.grey.shade300,
                                   width: 1,
                                 ),
                               ),
+                              elevation: 4,
                             ),
                           ),
                           child: PopupMenuButton<String>(
@@ -1298,15 +1450,20 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                             },
                             itemBuilder: (context) => [
                               PopupMenuItem(
+                                height: 32,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 value: 'new',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.note_add, size: 16),
+                                    const Icon(Icons.note_add, size: 14),
                                     const SizedBox(width: 8),
                                     Text(
                                       'New (Ctrl+N)',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w400,
                                         color: Colors.grey.shade800,
                                         fontFamily: 'Segoe UI',
@@ -1316,15 +1473,20 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 ),
                               ),
                               PopupMenuItem(
+                                height: 32,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 value: 'open',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.folder_open, size: 16),
+                                    const Icon(Icons.folder_open, size: 14),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Open (Ctrl+O)',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w400,
                                         color: Colors.grey.shade800,
                                         fontFamily: 'Segoe UI',
@@ -1333,17 +1495,21 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   ],
                                 ),
                               ),
-                              const PopupMenuDivider(),
                               PopupMenuItem(
+                                height: 32,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 value: 'save',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.save, size: 16),
+                                    const Icon(Icons.save, size: 14),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Save (Ctrl+S)',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w400,
                                         color: Colors.grey.shade800,
                                         fontFamily: 'Segoe UI',
@@ -1353,15 +1519,20 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 ),
                               ),
                               PopupMenuItem(
+                                height: 32,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 value: 'save_as',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.save_as, size: 16),
+                                    const Icon(Icons.save_as, size: 14),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Save As (Ctrl+Shift+S)',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w400,
                                         color: Colors.grey.shade800,
                                         fontFamily: 'Segoe UI',
@@ -1370,17 +1541,21 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   ],
                                 ),
                               ),
-                              const PopupMenuDivider(),
                               PopupMenuItem(
+                                height: 32,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 value: 'exit',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.exit_to_app, size: 16),
+                                    const Icon(Icons.exit_to_app, size: 14),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Exit',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w400,
                                         color: Colors.grey.shade800,
                                         fontFamily: 'Segoe UI',
@@ -1404,7 +1579,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                             popupMenuTheme: PopupMenuThemeData(
                               color: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(6),
                                 side: BorderSide(
                                   color: _isChaosEnabled
                                       ? Colors.red.shade200
@@ -1412,6 +1587,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   width: 1,
                                 ),
                               ),
+                              elevation: 4,
                             ),
                           ),
                           child: PopupMenuButton<String>(
@@ -1468,15 +1644,20 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                             },
                             itemBuilder: (context) => [
                               PopupMenuItem(
+                                height: 32,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 value: 'select_all',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.select_all, size: 16),
+                                    const Icon(Icons.select_all, size: 14),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Select All (Ctrl+A)',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w400,
                                         color: Colors.grey.shade800,
                                         fontFamily: 'Segoe UI',
@@ -1485,17 +1666,21 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   ],
                                 ),
                               ),
-                              const PopupMenuDivider(),
                               PopupMenuItem(
+                                height: 32,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 value: 'find',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.search, size: 16),
+                                    const Icon(Icons.search, size: 14),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Find (Ctrl+F)',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w400,
                                         color: Colors.grey.shade800,
                                         fontFamily: 'Segoe UI',
@@ -1505,15 +1690,20 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 ),
                               ),
                               PopupMenuItem(
+                                height: 32,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 value: 'replace',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.find_replace, size: 16),
+                                    const Icon(Icons.find_replace, size: 14),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Replace (Ctrl+H)',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w400,
                                         color: Colors.grey.shade800,
                                         fontFamily: 'Segoe UI',
@@ -1522,17 +1712,21 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                   ],
                                 ),
                               ),
-                              const PopupMenuDivider(),
                               PopupMenuItem(
+                                height: 32,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 value: 'clear',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.clear_all, size: 16),
+                                    const Icon(Icons.clear_all, size: 14),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Clear Formatting',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w400,
                                         color: Colors.grey.shade800,
                                         fontFamily: 'Segoe UI',
@@ -1542,15 +1736,20 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 ),
                               ),
                               PopupMenuItem(
+                                height: 32,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 value: 'go_to_line',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.linear_scale, size: 16),
+                                    const Icon(Icons.linear_scale, size: 14),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Go to Line (Ctrl+G)',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w400,
                                         color: Colors.grey.shade800,
                                         fontFamily: 'Segoe UI',
@@ -1560,15 +1759,20 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 ),
                               ),
                               PopupMenuItem(
+                                height: 32,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 value: 'insert_datetime',
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.access_time, size: 16),
+                                    const Icon(Icons.access_time, size: 14),
                                     const SizedBox(width: 8),
                                     Text(
                                       'Insert Date/Time (F5)',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 13,
                                         fontWeight: FontWeight.w400,
                                         color: Colors.grey.shade800,
                                         fontFamily: 'Segoe UI',
