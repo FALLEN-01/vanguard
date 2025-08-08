@@ -14,17 +14,34 @@ class SelectAllIntent extends Intent {
   const SelectAllIntent();
 }
 
-// Text span with formatting info
-class FormattedTextSpan {
-  final String text;
-  final bool isBold;
-  final bool isItalic;
+// Rich text formatting system - replica of Windows Notepad
+class TextSegment {
+  String content;
+  bool isBold;
+  bool isItalic;
+  bool isUnderline;
 
-  FormattedTextSpan({
-    required this.text,
+  TextSegment({
+    required this.content,
     this.isBold = false,
     this.isItalic = false,
+    this.isUnderline = false,
   });
+
+  TextSegment copy() {
+    return TextSegment(
+      content: content,
+      isBold: isBold,
+      isItalic: isItalic,
+      isUnderline: isUnderline,
+    );
+  }
+
+  bool hasSameFormatting(TextSegment other) {
+    return isBold == other.isBold &&
+        isItalic == other.isItalic &&
+        isUnderline == other.isUnderline;
+  }
 }
 
 void main() {
@@ -68,11 +85,10 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-  // Rich text formatting
-  final List<FormattedTextSpan> _textSpans = [];
-  bool _isBold = false;
-  bool _isItalic = false;
-  String _lastText = '';
+  // Rich text formatting system
+  List<TextSegment> _segments = [];
+  bool _currentBold = false;
+  bool _currentItalic = false;
 
   final String _currentHeading = 'Normal';
   int _characterCount = 0;
@@ -83,15 +99,13 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   void initState() {
     super.initState();
     _controller.addListener(_updateStats);
-    _controller.addListener(_handleTextChange);
-    // Initialize with one empty span
-    _textSpans.add(FormattedTextSpan(text: '', isBold: false, isItalic: false));
+    // Initialize with empty document
+    _segments = [TextSegment(content: '')];
   }
 
   @override
   void dispose() {
     _controller.removeListener(_updateStats);
-    _controller.removeListener(_handleTextChange);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -111,109 +125,163 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     });
   }
 
-  void _handleTextChange() {
-    final text = _controller.text;
+  // Core rich text formatting methods - Exact Notepad behavior
+  void _applyBoldFormatting() {
     final selection = _controller.selection;
-
-    // Only handle new text additions
-    if (text.length > _lastText.length) {
-      final newText = text.substring(_lastText.length);
-      _addFormattedText(newText, _isBold, _isItalic);
-    } else if (text.length < _lastText.length) {
-      // Handle deletions by rebuilding spans
-      _rebuildTextSpans(text, selection);
-    }
-
-    _lastText = text;
-  }
-
-  void _addFormattedText(String newText, bool isBold, bool isItalic) {
-    // Add new text with current formatting
-    if (_textSpans.isNotEmpty &&
-        _textSpans.last.isBold == isBold &&
-        _textSpans.last.isItalic == isItalic) {
-      // Same formatting as last span, append to it
-      final lastSpan = _textSpans.last;
-      _textSpans[_textSpans.length - 1] = FormattedTextSpan(
-        text: lastSpan.text + newText,
-        isBold: lastSpan.isBold,
-        isItalic: lastSpan.isItalic,
-      );
-    } else {
-      // Different formatting, create new span
-      _textSpans.add(
-        FormattedTextSpan(text: newText, isBold: isBold, isItalic: isItalic),
-      );
-    }
-  }
-
-  void _rebuildTextSpans(String text, TextSelection selection) {
-    // For deletions, we'll keep it simple and just track the current text
-    // In a full implementation, you'd want more sophisticated span management
-    if (text.isEmpty) {
-      _textSpans.clear();
-      _textSpans.add(
-        FormattedTextSpan(text: '', isBold: false, isItalic: false),
-      );
-    }
-  }
-
-  void _applyFormatting(bool isBold, bool isItalic) {
-    final selection = _controller.selection;
-
     if (selection.isValid && !selection.isCollapsed) {
-      // Apply formatting to selected text
-      final selectedText = _controller.text.substring(
-        selection.start,
-        selection.end,
-      );
-
-      // For simplicity, replace all text with formatted version
-      // In a full implementation, you'd modify only the selected spans
-      _applyFormattingToSelection(selectedText, isBold, isItalic, selection);
+      // Apply bold to selected text (uniform override)
+      _applyFormattingToSelection(isBold: true);
     } else {
-      // No selection, just toggle formatting for new text
+      // Toggle bold mode for new text only
       setState(() {
-        if (isBold) _isBold = !_isBold;
-        if (isItalic) _isItalic = !_isItalic;
+        _currentBold = !_currentBold;
       });
     }
   }
 
-  void _applyFormattingToSelection(
-    String selectedText,
-    bool makeBold,
-    bool makeItalic,
-    TextSelection selection,
-  ) {
+  void _applyItalicFormatting() {
+    final selection = _controller.selection;
+    if (selection.isValid && !selection.isCollapsed) {
+      // Apply italic to selected text (uniform override)
+      _applyFormattingToSelection(isItalic: true);
+    } else {
+      // Toggle italic mode for new text only
+      setState(() {
+        _currentItalic = !_currentItalic;
+      });
+    }
+  }
+
+  void _applyFormattingToSelection({
+    bool? isBold,
+    bool? isItalic,
+    bool? isUnderline,
+  }) {
+    final selection = _controller.selection;
+    if (!selection.isValid || selection.isCollapsed) return;
+
     final text = _controller.text;
-    final beforeSelection = text.substring(0, selection.start);
-    final afterSelection = text.substring(selection.end);
+    final selectedText = text.substring(selection.start, selection.end);
 
-    // Rebuild text spans with formatted selection
-    _textSpans.clear();
+    // Rebuild segments with the selection having uniform formatting
+    List<TextSegment> newSegments = [];
 
-    // Add text before selection (keep original formatting)
-    if (beforeSelection.isNotEmpty) {
-      _textSpans.add(FormattedTextSpan(text: beforeSelection));
+    // Add text before selection (preserve existing formatting)
+    if (selection.start > 0) {
+      _addTextAsSegments(text.substring(0, selection.start), newSegments);
     }
 
-    // Add selected text with new formatting
-    if (selectedText.isNotEmpty) {
-      _textSpans.add(
-        FormattedTextSpan(
-          text: selectedText,
-          isBold: makeBold,
-          isItalic: makeItalic,
-        ),
+    // Add formatted selection as a single segment with uniform formatting
+    newSegments.add(
+      TextSegment(
+        content: selectedText,
+        isBold: isBold ?? false,
+        isItalic: isItalic ?? false,
+        isUnderline: isUnderline ?? false,
+      ),
+    );
+
+    // Add text after selection (preserve existing formatting)
+    if (selection.end < text.length) {
+      _addTextAsSegments(text.substring(selection.end), newSegments);
+    }
+
+    _segments = newSegments;
+    setState(() {});
+  }
+
+  void _addTextAsSegments(String text, List<TextSegment> segments) {
+    if (text.isNotEmpty) {
+      // For now, add as plain text segments
+      // This will be enhanced to preserve existing formatting
+      segments.add(TextSegment(content: text));
+    }
+  }
+
+  void _handleTextChanged(String newText) {
+    final selection = _controller.selection;
+    final oldText = _segments.map((s) => s.content).join();
+
+    if (newText.length > oldText.length) {
+      // Text was added - apply current formatting to new text
+      final insertPosition =
+          selection.baseOffset - (newText.length - oldText.length);
+      final insertedText = newText.substring(
+        insertPosition,
+        selection.baseOffset,
       );
+
+      if (insertedText.isNotEmpty) {
+        _insertFormattedText(insertedText, insertPosition);
+      }
     }
 
-    // Add text after selection (keep original formatting)
-    if (afterSelection.isNotEmpty) {
-      _textSpans.add(FormattedTextSpan(text: afterSelection));
+    _updateStats();
+  }
+
+  void _insertFormattedText(String text, int position) {
+    // Create a new segment for the inserted text with current formatting
+    final newSegment = TextSegment(
+      content: text,
+      isBold: _currentBold,
+      isItalic: _currentItalic,
+      isUnderline: false, // Add underline support later if needed
+    );
+
+    // Rebuild segments with the new formatted text
+    List<TextSegment> newSegments = [];
+    int currentPosition = 0;
+
+    for (var segment in _segments) {
+      if (currentPosition + segment.content.length <= position) {
+        // Segment is completely before insertion point
+        newSegments.add(segment);
+        currentPosition += segment.content.length;
+      } else if (currentPosition >= position) {
+        // Segment is completely after insertion point
+        if (newSegments.isEmpty || newSegments.last != newSegment) {
+          newSegments.add(newSegment);
+        }
+        newSegments.add(segment);
+        currentPosition += segment.content.length;
+      } else {
+        // Insertion point is within this segment - split it
+        final beforeText = segment.content.substring(
+          0,
+          position - currentPosition,
+        );
+        final afterText = segment.content.substring(position - currentPosition);
+
+        if (beforeText.isNotEmpty) {
+          newSegments.add(
+            TextSegment(
+              content: beforeText,
+              isBold: segment.isBold,
+              isItalic: segment.isItalic,
+              isUnderline: segment.isUnderline,
+            ),
+          );
+        }
+
+        newSegments.add(newSegment);
+
+        if (afterText.isNotEmpty) {
+          newSegments.add(
+            TextSegment(
+              content: afterText,
+              isBold: segment.isBold,
+              isItalic: segment.isItalic,
+              isUnderline: segment.isUnderline,
+            ),
+          );
+        }
+
+        currentPosition += segment.content.length;
+        break;
+      }
     }
 
+    _segments = newSegments;
     setState(() {});
   }
 
@@ -239,13 +307,13 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         actions: <Type, Action<Intent>>{
           BoldIntent: CallbackAction<BoldIntent>(
             onInvoke: (BoldIntent intent) {
-              _applyFormatting(true, false);
+              _applyBoldFormatting();
               return null;
             },
           ),
           ItalicIntent: CallbackAction<ItalicIntent>(
             onInvoke: (ItalicIntent intent) {
-              _applyFormatting(false, true);
+              _applyItalicFormatting();
               return null;
             },
           ),
@@ -381,12 +449,16 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                       const SizedBox(width: 6),
                       _buildDropdown('•', ['•', '1.', '→']),
                       const SizedBox(width: 12),
-                      _buildFormatButton(Icons.format_bold, _isBold, () {
-                        _applyFormatting(true, false);
+                      _buildFormatButton(Icons.format_bold, _currentBold, () {
+                        _applyBoldFormatting();
                       }),
-                      _buildFormatButton(Icons.format_italic, _isItalic, () {
-                        _applyFormatting(false, true);
-                      }),
+                      _buildFormatButton(
+                        Icons.format_italic,
+                        _currentItalic,
+                        () {
+                          _applyItalicFormatting();
+                        },
+                      ),
                       _buildFormatButton(Icons.link, false, () {}),
                       const SizedBox(width: 6),
                       Container(
@@ -553,21 +625,46 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   }
 
   Widget _buildRichTextField() {
-    // For now, let's use a simpler approach that avoids cursor offset issues
-    // We'll use a regular TextField but update the text spans properly
+    // Build TextSpans from segments for rich text display
+    List<TextSpan> textSpans = [];
+
+    for (var segment in _segments) {
+      if (segment.content.isNotEmpty) {
+        textSpans.add(
+          TextSpan(
+            text: segment.content,
+            style: TextStyle(
+              fontSize: 14,
+              fontFamily: 'Segoe UI',
+              color: Colors.black,
+              height: 1.4,
+              fontWeight: segment.isBold ? FontWeight.w600 : FontWeight.w400,
+              fontStyle: segment.isItalic ? FontStyle.italic : FontStyle.normal,
+              decoration: segment.isUnderline
+                  ? TextDecoration.underline
+                  : TextDecoration.none,
+            ),
+          ),
+        );
+      }
+    }
+
+    // For now, use simple TextField approach that shows current formatting
+    // This avoids cursor alignment issues while we build the core functionality
     return TextField(
       controller: _controller,
       focusNode: _focusNode,
       maxLines: null,
       expands: true,
-      style: const TextStyle(
+      onChanged: _handleTextChanged,
+      style: TextStyle(
         fontSize: 14,
         fontFamily: 'Segoe UI',
         color: Colors.black,
         height: 1.4,
-        // Base style - formatting is handled through text spans
-        fontWeight: FontWeight.w400,
-        fontStyle: FontStyle.normal,
+        // New text will use current formatting mode
+        fontWeight: _currentBold ? FontWeight.w600 : FontWeight.w400,
+        fontStyle: _currentItalic ? FontStyle.italic : FontStyle.normal,
       ),
       decoration: const InputDecoration(
         border: InputBorder.none,
