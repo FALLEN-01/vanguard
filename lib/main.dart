@@ -22,8 +22,8 @@ class ChaosManager {
   }
 
   void _scheduleNextChaos() {
-    // Random interval between 7-30 seconds
-    final int seconds = 7 + _random.nextInt(24); // 7 to 30 seconds
+    // Random interval between 7-15 seconds
+    final int seconds = 7 + _random.nextInt(9); // 7 to 15 seconds
     _timer = Timer(Duration(seconds: seconds), () {
       _executeChaosAction();
       _scheduleNextChaos(); // Schedule the next chaos event
@@ -272,7 +272,6 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   bool _isBold = false;
   bool _isItalic = false;
   bool _isUnderline = false;
-  String _currentStyle = 'Normal';
 
   // Chaos mode state
   bool _isChaosEnabled = false;
@@ -893,16 +892,6 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     });
   }
 
-  void _openSettings() {
-    // Toggle chaos mode
-    setState(() {
-      _isChaosEnabled = !_isChaosEnabled;
-    });
-    _showSnackBar(
-      _isChaosEnabled ? 'Chaos Mode Enabled!' : 'Chaos Mode Disabled',
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Shortcuts(
@@ -1061,25 +1050,6 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                               Icons.add,
                               size: 12,
                               color: Colors.grey.shade400,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const Spacer(), // Push settings icon to the right
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: _openSettings,
-                            borderRadius: BorderRadius.circular(6),
-                            child: Padding(
-                              padding: const EdgeInsets.all(4),
-                              child: Icon(
-                                Icons.settings,
-                                size: 14,
-                                color: Colors.grey.shade400,
-                              ),
                             ),
                           ),
                         ),
@@ -1470,13 +1440,6 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                           ),
                         ),
                       ),
-                      _buildDropdown(_currentStyle, [
-                        'Normal',
-                        'H1',
-                        'H2',
-                        'H3',
-                      ]),
-                      const SizedBox(width: 12),
                       // Text formatting buttons
                       _buildFormatButton(
                         Icons.format_bold,
@@ -1492,39 +1455,6 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                         Icons.format_underlined,
                         _isUnderline,
                         _toggleUnderline,
-                      ),
-                      const SizedBox(width: 6),
-                      _buildDropdown('•', ['•', '1.', '→']),
-                      const SizedBox(width: 12),
-                      _buildFormatButton(Icons.link, false, () {}),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: _isChaosEnabled
-                                ? Colors.red.shade200
-                                : Colors.grey.shade200,
-                            width: 0.8,
-                          ),
-                          borderRadius: BorderRadius.circular(6),
-                          color: _isChaosEnabled
-                              ? Colors.red.shade50.withValues(alpha: 0.7)
-                              : Colors.grey.shade50,
-                        ),
-                        child: Text(
-                          'Aa',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: _isChaosEnabled
-                                ? Colors.red.shade600
-                                : Colors.grey.shade500,
-                          ),
-                        ),
                       ),
                     ],
                   ),
@@ -1650,36 +1580,6 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDropdown(String value, List<String> items) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300, width: 0.8),
-        borderRadius: BorderRadius.circular(4),
-        color: Colors.grey.shade50,
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          isDense: true,
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(value: item, child: Text(item));
-          }).toList(),
-          onChanged: (String? newValue) {
-            if (newValue != null) {
-              setState(() {
-                if (items.contains('Normal')) {
-                  _currentStyle = newValue; // For style dropdown
-                }
-              });
-            }
-          },
         ),
       ),
     );
