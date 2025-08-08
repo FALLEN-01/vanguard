@@ -1,25 +1,25 @@
 <img width="3188" height="1202" alt="frame (3)" src="https://github.com/user-attachments/assets/517ad8e9-ad22-457d-9538-a9e62d137cd7" />
 
 
-# [Project Name] 🎯
+# SCAMPAD 🎯
 
 
 ## Basic Details
-### Team Name: [ScramPad]
+### Team Name: Vanguard
 
 
 ### Team Members
-- Team Lead: [Jeffin Basil] - [SCMS SCHOOL OF ENGINEERING & TECHNOLOGY]
-- Member 2: [Adithya Manghat] - [SCMS SCHOOL OF ENGINEERING & TECHNOLOGY]
+- Team Lead: Jeffin Basil - SCMS SCHOOL OF ENGINEERING & TECHNOLOGY
+- Member 2: Adithya Manghat - SCMS SCHOOL OF ENGINEERING & TECHNOLOGY
 
 ### Project Description
-["ScramPad" could be envisioned as a notepad application that looks normal but gradually scrambles, distorts, or modifies saved notes subtly over time]
+"ScamPad" could be envisioned as a notepad application that looks normal but gradually scrambles, distorts, or modifies saved notes subtly over time
 
 ### The Problem (that doesn't exist)
-[Notepad app are convenient and useful for most cases.]
+Notepad app are convenient and useful for most cases.
 
 ### The Solution (that nobody asked for)
-[It will be more inconvenient to use.]
+It will be more inconvenient to use.
 
 ## Technical Details
 ### Technologies/Components Used
@@ -29,10 +29,7 @@ For Software:
 - [Libraries used]
 - [Tools used]
 
-For Hardware:
-- [List main components]
-- [List specifications]
-- [List tools required]
+
 
 ### Implementation
 For Software:
@@ -59,24 +56,6 @@ For Software:
 ![Workflow](Add your workflow/architecture diagram here)
 *Add caption explaining your workflow*
 
-For Hardware:
-
-# Schematic & Circuit
-![Circuit](Add your circuit diagram here)
-*Add caption explaining connections*
-
-![Schematic](Add your schematic diagram here)
-*Add caption explaining the schematic*
-
-# Build Photos
-![Components](Add photo of your components here)
-*List out all components shown*
-
-![Build](Add photos of build process here)
-*Explain the build steps*
-
-![Final](Add photo of final product here)
-*Explain the final build*
 
 ### Project Demo
 # Video

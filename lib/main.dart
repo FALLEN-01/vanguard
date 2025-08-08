@@ -1,16 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:io';
-import 'chaos/chaos_controller.dart';
-import 'screens/chaos_settings_screen.dart';
 
 // Intent classes for keyboard shortcuts
 class SelectAllIntent extends Intent {
   const SelectAllIntent();
-}
-
-class ChaosToggleIntent extends Intent {
-  const ChaosToggleIntent();
 }
 
 class SaveIntent extends Intent {
@@ -45,6 +39,14 @@ class FindPreviousIntent extends Intent {
   const FindPreviousIntent();
 }
 
+class GoToIntent extends Intent {
+  const GoToIntent();
+}
+
+class InsertDateTimeIntent extends Intent {
+  const InsertDateTimeIntent();
+}
+
 void main() {
   runApp(const MyApp());
 }
@@ -55,20 +57,16 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ScramPad',
+      title: 'Notepad',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
         colorScheme: const ColorScheme.light(
           primary: Colors.blue,
-          surface: Color(0xFFFAFAFA),
+          surface: Colors.white,
         ),
         scaffoldBackgroundColor: Colors.white,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          systemOverlayStyle: SystemUiOverlayStyle.light,
-        ),
+        fontFamily: 'Segoe UI',
       ),
       home: const ModernNotepadPage(),
     );
@@ -85,98 +83,44 @@ class ModernNotepadPage extends StatefulWidget {
 class _ModernNotepadPageState extends State<ModernNotepadPage> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _replaceController = TextEditingController();
 
   // File handling
-  String _currentFileName = 'Untitled';
+  String _currentFileName = 'Untitled.txt';
   String? _currentFilePath;
   bool _isModified = false;
 
   // Find/Replace functionality
-  String _searchTerm = '';
-  String _replaceTerm = '';
   int _currentSearchIndex = -1;
   List<int> _searchResults = [];
-  bool _isSearchVisible = false;
-  bool _isReplaceVisible = false;
-  final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _replaceController = TextEditingController();
 
-  // Chaos system - permanently active
-  ChaosController? _chaosController;
-  bool _isChaosEnabled = true; // Always enabled
-  bool _isChaosPulseActive = false;
+  // Text formatting state
+  bool _isBold = false;
+  bool _isItalic = false;
+  bool _isUnderline = false;
+  String _currentStyle = 'H1';
 
-  final String _currentHeading = 'Normal';
+  // Status bar
   int _characterCount = 0;
   int _lineNumber = 1;
-  int _columnNumber = 1;
+  int _columnNumber = 30;
 
   @override
   void initState() {
     super.initState();
     _controller.addListener(_updateStats);
-
-    // Initialize chaos controller
-    _initializeChaosController();
-  }
-
-  void _initializeChaosController() {
-    _chaosController = ChaosController(
-      textController: _controller,
-      onTextChanged: _handleChaosTextChange,
-      onSelectionChanged: _handleChaosSelectionChange,
-      onSave: _handleChaosSave,
-    );
-    // Start chaos immediately - it's permanently active
-    _chaosController?.startChaos();
-  }
-
-  void _handleChaosTextChange(String newText) {
-    // Update when chaos modifies text
-    _updateStats();
-  }
-
-  void _handleChaosSelectionChange(TextSelection selection) {
-    // Handle selection changes from chaos
-    setState(() {});
-  }
-
-  void _handleChaosSave() {
-    // Handle save action (could trigger file save dialog)
-    // For now, just update stats
-    _updateStats();
-  }
-
-  void _toggleChaos(bool enabled) {
-    // Chaos mode is permanently active - this function does nothing
-    // but we keep it for settings screen compatibility
-    // setState(() {
-    //   _isChaosEnabled = enabled;
-    // });
-
-    // Chaos always remains active
-    // if (enabled) {
-    //   _chaosController?.startChaos();
-    // } else {
-    //   _chaosController?.stopChaos();
-    // }
-  }
-
-  void _openSettings() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChaosSettingsScreen(
-          isChaosEnabled: _isChaosEnabled,
-          onChaosToggle: _toggleChaos,
-        ),
-      ),
-    );
+    
+    // Set initial cursor position to column 30
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _controller.text = '';
+      _controller.selection = const TextSelection.collapsed(offset: 0);
+      _focusNode.requestFocus();
+    });
   }
 
   @override
   void dispose() {
-    _chaosController?.dispose();
     _controller.removeListener(_updateStats);
     _controller.dispose();
     _focusNode.dispose();
@@ -195,6 +139,8 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         final beforeCursor = text.substring(0, selection.baseOffset);
         _lineNumber = '\n'.allMatches(beforeCursor).length + 1;
         _columnNumber = beforeCursor.split('\n').last.length + 1;
+      } else {
+        _columnNumber = 30;
       }
     });
   }
@@ -218,7 +164,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   void _createNewFile() {
     setState(() {
       _controller.text = '';
-      _currentFileName = 'Untitled';
+      _currentFileName = 'Untitled.txt';
       _currentFilePath = null;
       _isModified = false;
     });
@@ -234,13 +180,10 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
   Future<void> _performOpenFile() async {
     try {
-      // Simple file picker using system dialog (basic implementation)
-      // For a more robust solution, you'd use the file_picker package
       final downloadsPath = Platform.isWindows
           ? '${Platform.environment['USERPROFILE']}${Platform.pathSeparator}Downloads'
           : '${Platform.environment['HOME']}${Platform.pathSeparator}Downloads';
 
-      // For demo purposes, we'll show a dialog asking for filename
       final fileName = await _showFileNameDialog(
         'Open File',
         'Enter filename to open from Downloads:',
@@ -295,8 +238,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   }
 
   void _clearFormatting() {
-    // Since we removed rich text formatting, this just shows a message
-    _showSnackBar('No formatting to clear - plain text mode active');
+    _showSnackBar('Formatting cleared');
   }
 
   void _exitApplication() {
@@ -308,8 +250,63 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   }
 
   void _performExit() {
-    // In a real app, you'd use SystemNavigator.pop() or similar
     _showSnackBar('Exit requested - close window manually');
+  }
+
+  void _goToLine() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Go to Line'),
+        content: TextField(
+          decoration: const InputDecoration(hintText: 'Enter line number'),
+          keyboardType: TextInputType.number,
+          onSubmitted: (value) {
+            final lineNum = int.tryParse(value);
+            if (lineNum != null && lineNum > 0) {
+              _jumpToLine(lineNum);
+            }
+            Navigator.pop(context);
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _jumpToLine(int lineNumber) {
+    final text = _controller.text;
+    final lines = text.split('\n');
+    
+    if (lineNumber <= lines.length) {
+      int position = 0;
+      for (int i = 0; i < lineNumber - 1; i++) {
+        position += lines[i].length + 1; // +1 for newline character
+      }
+      _controller.selection = TextSelection.collapsed(offset: position);
+    }
+  }
+
+  void _insertDateTime() {
+    final now = DateTime.now();
+    final dateTime = '${now.day}/${now.month}/${now.year} ${now.hour}:${now.minute.toString().padLeft(2, '0')}';
+    
+    final selection = _controller.selection;
+    final text = _controller.text;
+    final newText = text.replaceRange(selection.start, selection.end, dateTime);
+    
+    setState(() {
+      _controller.text = newText;
+      _controller.selection = TextSelection.collapsed(
+        offset: selection.start + dateTime.length,
+      );
+      _isModified = true;
+    });
   }
 
   // Find and Replace functionality
@@ -317,26 +314,25 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: _isChaosEnabled ? Colors.red.shade50 : Colors.white,
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: _isChaosEnabled ? Colors.red.shade200 : Colors.grey.shade300,
+            color: Colors.grey.shade300,
             width: 1,
           ),
         ),
-        title: Row(
+        title: const Row(
           children: [
             Icon(
               Icons.search,
-              color: _isChaosEnabled ? Colors.red.shade600 : Colors.blue,
+              color: Colors.blue,
               size: 20,
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Text(
               'Find',
               style: TextStyle(
-                color: _isChaosEnabled ? Colors.red.shade700 : null,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -349,23 +345,19 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide(
-                color: _isChaosEnabled
-                    ? Colors.red.shade300
-                    : Colors.grey.shade300,
+                color: Colors.grey.shade300,
               ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(
-                color: _isChaosEnabled ? Colors.red.shade500 : Colors.blue,
+              borderSide: const BorderSide(
+                color: Colors.blue,
                 width: 2,
               ),
             ),
             prefixIcon: Icon(
               Icons.search,
-              color: _isChaosEnabled
-                  ? Colors.red.shade400
-                  : Colors.grey.shade600,
+              color: Colors.grey.shade600,
             ),
           ),
           autofocus: true,
@@ -374,20 +366,11 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: _isChaosEnabled ? Colors.red.shade600 : null,
-              ),
-            ),
+            child: const Text('Cancel'),
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.search_outlined, size: 16),
             label: const Text('Find All'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isChaosEnabled ? Colors.red.shade100 : null,
-              foregroundColor: _isChaosEnabled ? Colors.red.shade700 : null,
-            ),
             onPressed: () {
               _performSearch();
               Navigator.pop(context);
@@ -397,9 +380,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             icon: const Icon(Icons.arrow_forward, size: 16),
             label: const Text('Find Next'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _isChaosEnabled
-                  ? Colors.red.shade600
-                  : Colors.blue,
+              backgroundColor: Colors.blue,
               foregroundColor: Colors.white,
             ),
             onPressed: () {
@@ -411,36 +392,31 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         ],
       ),
     );
-    setState(() {
-      _isSearchVisible = true;
-      _isReplaceVisible = false;
-    });
   }
 
   void _showReplaceDialog() {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: _isChaosEnabled ? Colors.red.shade50 : Colors.white,
+        backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: _isChaosEnabled ? Colors.red.shade200 : Colors.grey.shade300,
+            color: Colors.grey.shade300,
             width: 1,
           ),
         ),
-        title: Row(
+        title: const Row(
           children: [
             Icon(
               Icons.find_replace,
-              color: _isChaosEnabled ? Colors.red.shade600 : Colors.blue,
+              color: Colors.blue,
               size: 20,
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             Text(
               'Find and Replace',
               style: TextStyle(
-                color: _isChaosEnabled ? Colors.red.shade700 : null,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -458,16 +434,14 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(
-                    color: _isChaosEnabled ? Colors.red.shade500 : Colors.blue,
+                  borderSide: const BorderSide(
+                    color: Colors.blue,
                     width: 2,
                   ),
                 ),
                 prefixIcon: Icon(
                   Icons.search,
-                  color: _isChaosEnabled
-                      ? Colors.red.shade400
-                      : Colors.grey.shade600,
+                  color: Colors.grey.shade600,
                 ),
               ),
             ),
@@ -481,16 +455,14 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(
-                    color: _isChaosEnabled ? Colors.red.shade500 : Colors.blue,
+                  borderSide: const BorderSide(
+                    color: Colors.blue,
                     width: 2,
                   ),
                 ),
                 prefixIcon: Icon(
                   Icons.edit,
-                  color: _isChaosEnabled
-                      ? Colors.red.shade400
-                      : Colors.grey.shade600,
+                  color: Colors.grey.shade600,
                 ),
               ),
             ),
@@ -499,20 +471,11 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: _isChaosEnabled ? Colors.red.shade600 : null,
-              ),
-            ),
+            child: const Text('Cancel'),
           ),
           ElevatedButton.icon(
             icon: const Icon(Icons.search_outlined, size: 16),
             label: const Text('Find All'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _isChaosEnabled ? Colors.red.shade100 : null,
-              foregroundColor: _isChaosEnabled ? Colors.red.shade700 : null,
-            ),
             onPressed: () {
               _performSearch();
               Navigator.pop(context);
@@ -522,12 +485,8 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             icon: const Icon(Icons.swap_horiz, size: 16),
             label: const Text('Replace'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _isChaosEnabled
-                  ? Colors.red.shade200
-                  : Colors.orange,
-              foregroundColor: _isChaosEnabled
-                  ? Colors.red.shade800
-                  : Colors.white,
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
             ),
             onPressed: () {
               _replaceSelected();
@@ -538,9 +497,7 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
             icon: const Icon(Icons.swap_vert, size: 16),
             label: const Text('Replace All'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _isChaosEnabled
-                  ? Colors.red.shade600
-                  : Colors.red,
+              backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
             onPressed: () {
@@ -551,19 +508,6 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         ],
       ),
     );
-    setState(() {
-      _isSearchVisible = true;
-      _isReplaceVisible = true;
-    });
-  }
-
-  void _hideFindReplace() {
-    setState(() {
-      _isSearchVisible = false;
-      _isReplaceVisible = false;
-      _searchResults.clear();
-      _currentSearchIndex = -1;
-    });
   }
 
   void _performSearch() {
@@ -714,7 +658,6 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   Future<void> _saveFile() async {
     try {
       if (_currentFilePath != null) {
-        // Save to existing file
         final file = File(_currentFilePath!);
         await file.writeAsString(_controller.text);
         setState(() {
@@ -722,7 +665,6 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
         });
         _showSnackBar('File saved successfully');
       } else {
-        // Save as new file
         await _saveAsFile();
       }
     } catch (e) {
@@ -732,14 +674,13 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
 
   Future<void> _saveAsFile() async {
     try {
-      // For now, save to Downloads folder with timestamp
       final downloadsPath = Platform.isWindows
           ? '${Platform.environment['USERPROFILE']}${Platform.pathSeparator}Downloads'
           : '${Platform.environment['HOME']}${Platform.pathSeparator}Downloads';
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = _currentFileName == 'Untitled'
-          ? 'scrampad_$timestamp.txt'
+      final fileName = _currentFileName == 'Untitled.txt'
+          ? 'notepad_$timestamp.txt'
           : _currentFileName;
 
       final filePath = '$downloadsPath${Platform.pathSeparator}$fileName';
@@ -773,8 +714,26 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
   }
 
   void _handleSave() {
-    // Always use the file save functionality
     _saveFile();
+  }
+
+  // Text formatting methods
+  void _toggleBold() {
+    setState(() {
+      _isBold = !_isBold;
+    });
+  }
+
+  void _toggleItalic() {
+    setState(() {
+      _isItalic = !_isItalic;
+    });
+  }
+
+  void _toggleUnderline() {
+    setState(() {
+      _isUnderline = !_isUnderline;
+    });
   }
 
   @override
@@ -1019,11 +978,15 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                         child: Theme(
                           data: Theme.of(context).copyWith(
                             popupMenuTheme: PopupMenuThemeData(
-                              color: _isChaosEnabled ? Colors.red.shade50 : Colors.white,
+                              color: _isChaosEnabled
+                                  ? Colors.red.shade50
+                                  : Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 side: BorderSide(
-                                  color: _isChaosEnabled ? Colors.red.shade200 : Colors.grey.shade300,
+                                  color: _isChaosEnabled
+                                      ? Colors.red.shade200
+                                      : Colors.grey.shade300,
                                   width: 1,
                                 ),
                               ),
@@ -1059,129 +1022,160 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 ],
                               ),
                             ),
-                          onSelected: (value) {
-                            switch (value) {
-                              case 'new':
-                                _newFile();
-                                break;
-                              case 'open':
-                                _openFile();
-                                break;
-                              case 'save':
-                                _handleSave();
-                                break;
-                              case 'save_as':
-                                _saveAsFile();
-                                break;
-                              case 'exit':
-                                _exitApplication();
-                                break;
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'new',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.note_add, 
-                                    size: 16,
-                                    color: _isChaosEnabled ? Colors.red.shade600 : null,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'New (Ctrl+N)',
-                                    style: TextStyle(
-                                      color: _isChaosEnabled ? Colors.red.shade700 : null,
-                                      fontWeight: _isChaosEnabled ? FontWeight.w500 : FontWeight.normal,
+                            onSelected: (value) {
+                              switch (value) {
+                                case 'new':
+                                  _newFile();
+                                  break;
+                                case 'open':
+                                  _openFile();
+                                  break;
+                                case 'save':
+                                  _handleSave();
+                                  break;
+                                case 'save_as':
+                                  _saveAsFile();
+                                  break;
+                                case 'exit':
+                                  _exitApplication();
+                                  break;
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'new',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.note_add,
+                                      size: 16,
+                                      color: _isChaosEnabled
+                                          ? Colors.red.shade600
+                                          : null,
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'open',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.folder_open, 
-                                    size: 16,
-                                    color: _isChaosEnabled ? Colors.red.shade600 : null,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Open (Ctrl+O)',
-                                    style: TextStyle(
-                                      color: _isChaosEnabled ? Colors.red.shade700 : null,
-                                      fontWeight: _isChaosEnabled ? FontWeight.w500 : FontWeight.normal,
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'New (Ctrl+N)',
+                                      style: TextStyle(
+                                        color: _isChaosEnabled
+                                            ? Colors.red.shade700
+                                            : null,
+                                        fontWeight: _isChaosEnabled
+                                            ? FontWeight.w500
+                                            : FontWeight.normal,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            const PopupMenuDivider(),
-                            PopupMenuItem(
-                              value: 'save',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.save, 
-                                    size: 16,
-                                    color: _isChaosEnabled ? Colors.red.shade600 : null,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Save (Ctrl+S)',
-                                    style: TextStyle(
-                                      color: _isChaosEnabled ? Colors.red.shade700 : null,
-                                      fontWeight: _isChaosEnabled ? FontWeight.w500 : FontWeight.normal,
+                              PopupMenuItem(
+                                value: 'open',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.folder_open,
+                                      size: 16,
+                                      color: _isChaosEnabled
+                                          ? Colors.red.shade600
+                                          : null,
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'save_as',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.save_as, 
-                                    size: 16,
-                                    color: _isChaosEnabled ? Colors.red.shade600 : null,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Save As (Ctrl+Shift+S)',
-                                    style: TextStyle(
-                                      color: _isChaosEnabled ? Colors.red.shade700 : null,
-                                      fontWeight: _isChaosEnabled ? FontWeight.w500 : FontWeight.normal,
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Open (Ctrl+O)',
+                                      style: TextStyle(
+                                        color: _isChaosEnabled
+                                            ? Colors.red.shade700
+                                            : null,
+                                        fontWeight: _isChaosEnabled
+                                            ? FontWeight.w500
+                                            : FontWeight.normal,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            const PopupMenuDivider(),
-                            PopupMenuItem(
-                              value: 'exit',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.exit_to_app, 
-                                    size: 16,
-                                    color: _isChaosEnabled ? Colors.red.shade600 : null,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Exit',
-                                    style: TextStyle(
-                                      color: _isChaosEnabled ? Colors.red.shade700 : null,
-                                      fontWeight: _isChaosEnabled ? FontWeight.w500 : FontWeight.normal,
+                              const PopupMenuDivider(),
+                              PopupMenuItem(
+                                value: 'save',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.save,
+                                      size: 16,
+                                      color: _isChaosEnabled
+                                          ? Colors.red.shade600
+                                          : null,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Save (Ctrl+S)',
+                                      style: TextStyle(
+                                        color: _isChaosEnabled
+                                            ? Colors.red.shade700
+                                            : null,
+                                        fontWeight: _isChaosEnabled
+                                            ? FontWeight.w500
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                              PopupMenuItem(
+                                value: 'save_as',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.save_as,
+                                      size: 16,
+                                      color: _isChaosEnabled
+                                          ? Colors.red.shade600
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Save As (Ctrl+Shift+S)',
+                                      style: TextStyle(
+                                        color: _isChaosEnabled
+                                            ? Colors.red.shade700
+                                            : null,
+                                        fontWeight: _isChaosEnabled
+                                            ? FontWeight.w500
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuDivider(),
+                              PopupMenuItem(
+                                value: 'exit',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.exit_to_app,
+                                      size: 16,
+                                      color: _isChaosEnabled
+                                          ? Colors.red.shade600
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Exit',
+                                      style: TextStyle(
+                                        color: _isChaosEnabled
+                                            ? Colors.red.shade700
+                                            : null,
+                                        fontWeight: _isChaosEnabled
+                                            ? FontWeight.w500
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       // Edit menu
@@ -1199,136 +1193,178 @@ class _ModernNotepadPageState extends State<ModernNotepadPage> {
                                 )
                               : null,
                         ),
-                        child: PopupMenuButton<String>(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.edit_outlined,
-                                  size: 12,
+                        child: Theme(
+                          data: Theme.of(context).copyWith(
+                            popupMenuTheme: PopupMenuThemeData(
+                              color: _isChaosEnabled
+                                  ? Colors.red.shade50
+                                  : Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(
                                   color: _isChaosEnabled
-                                      ? Colors.red.shade400
-                                      : Colors.grey.shade600,
+                                      ? Colors.red.shade200
+                                      : Colors.grey.shade300,
+                                  width: 1,
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Edit',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w500,
-                                    color: _isChaosEnabled
-                                        ? Colors.red.shade600
-                                        : Colors.grey.shade600,
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
-                          onSelected: (value) {
-                            switch (value) {
-                              case 'select_all':
-                                _selectAll();
-                                break;
-                              case 'find':
-                                _showFindDialog();
-                                break;
-                              case 'replace':
-                                _showReplaceDialog();
-                                break;
-                              case 'clear':
-                                _clearFormatting();
-                                break;
-                            }
-                          },
-                          itemBuilder: (context) => [
-                            PopupMenuItem(
-                              value: 'select_all',
+                          child: PopupMenuButton<String>(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    Icons.select_all, 
-                                    size: 16,
-                                    color: _isChaosEnabled ? Colors.red.shade600 : null,
+                                    Icons.edit_outlined,
+                                    size: 12,
+                                    color: _isChaosEnabled
+                                        ? Colors.red.shade400
+                                        : Colors.grey.shade600,
                                   ),
-                                  const SizedBox(width: 8),
+                                  const SizedBox(width: 4),
                                   Text(
-                                    'Select All (Ctrl+A)',
+                                    'Edit',
                                     style: TextStyle(
-                                      color: _isChaosEnabled ? Colors.red.shade700 : null,
-                                      fontWeight: _isChaosEnabled ? FontWeight.w500 : FontWeight.normal,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: _isChaosEnabled
+                                          ? Colors.red.shade600
+                                          : Colors.grey.shade600,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                            const PopupMenuDivider(),
-                            PopupMenuItem(
-                              value: 'find',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.search, 
-                                    size: 16,
-                                    color: _isChaosEnabled ? Colors.red.shade600 : null,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Find (Ctrl+F)',
-                                    style: TextStyle(
-                                      color: _isChaosEnabled ? Colors.red.shade700 : null,
-                                      fontWeight: _isChaosEnabled ? FontWeight.w500 : FontWeight.normal,
+                            onSelected: (value) {
+                              switch (value) {
+                                case 'select_all':
+                                  _selectAll();
+                                  break;
+                                case 'find':
+                                  _showFindDialog();
+                                  break;
+                                case 'replace':
+                                  _showReplaceDialog();
+                                  break;
+                                case 'clear':
+                                  _clearFormatting();
+                                  break;
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 'select_all',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.select_all,
+                                      size: 16,
+                                      color: _isChaosEnabled
+                                          ? Colors.red.shade600
+                                          : null,
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 'replace',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.find_replace, 
-                                    size: 16,
-                                    color: _isChaosEnabled ? Colors.red.shade600 : null,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Replace (Ctrl+H)',
-                                    style: TextStyle(
-                                      color: _isChaosEnabled ? Colors.red.shade700 : null,
-                                      fontWeight: _isChaosEnabled ? FontWeight.w500 : FontWeight.normal,
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Select All (Ctrl+A)',
+                                      style: TextStyle(
+                                        color: _isChaosEnabled
+                                            ? Colors.red.shade700
+                                            : null,
+                                        fontWeight: _isChaosEnabled
+                                            ? FontWeight.w500
+                                            : FontWeight.normal,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            const PopupMenuDivider(),
-                            PopupMenuItem(
-                              value: 'clear',
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.clear_all, 
-                                    size: 16,
-                                    color: _isChaosEnabled ? Colors.red.shade600 : null,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Clear Formatting',
-                                    style: TextStyle(
-                                      color: _isChaosEnabled ? Colors.red.shade700 : null,
-                                      fontWeight: _isChaosEnabled ? FontWeight.w500 : FontWeight.normal,
+                              const PopupMenuDivider(),
+                              PopupMenuItem(
+                                value: 'find',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.search,
+                                      size: 16,
+                                      color: _isChaosEnabled
+                                          ? Colors.red.shade600
+                                          : null,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Find (Ctrl+F)',
+                                      style: TextStyle(
+                                        color: _isChaosEnabled
+                                            ? Colors.red.shade700
+                                            : null,
+                                        fontWeight: _isChaosEnabled
+                                            ? FontWeight.w500
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                              PopupMenuItem(
+                                value: 'replace',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.find_replace,
+                                      size: 16,
+                                      color: _isChaosEnabled
+                                          ? Colors.red.shade600
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Replace (Ctrl+H)',
+                                      style: TextStyle(
+                                        color: _isChaosEnabled
+                                            ? Colors.red.shade700
+                                            : null,
+                                        fontWeight: _isChaosEnabled
+                                            ? FontWeight.w500
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const PopupMenuDivider(),
+                              PopupMenuItem(
+                                value: 'clear',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.clear_all,
+                                      size: 16,
+                                      color: _isChaosEnabled
+                                          ? Colors.red.shade600
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Clear Formatting',
+                                      style: TextStyle(
+                                        color: _isChaosEnabled
+                                            ? Colors.red.shade700
+                                            : null,
+                                        fontWeight: _isChaosEnabled
+                                            ? FontWeight.w500
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       _buildMenuButton('View'),
