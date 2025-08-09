@@ -208,7 +208,7 @@ TabData
 *ScamPad's clean interface on startup - appears as a normal notepad application with multiple tabs, file operations, and a professional layout*
 
 ![Final State](Screenshots/final_state.png)
-*After chaos mode activation - text becomes scrambled, words are swapped and deleted, demonstrating the progressive chaos system in action*
+*After an idle period - text becomes scrambled, words are swapped and deleted, demonstrating the progressive chaos system in action*
 
 # Diagrams
 
