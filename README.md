@@ -276,8 +276,12 @@ TabData
 
 ### Project Demo
 # Video
-[ScamPad Demo Video](Screenshots/ScamPad_final.mp4)
-*This video demonstrates ScamPad's complete chaos system in action - from normal notepad functionality to progressive text scrambling, speed-based warnings, and idle-based rapid swapping*
+
+![ScamPad Demo](Screenshots/ScamPad_final.gif)
+
+**Full Video**: [Download complete demo](Screenshots/ScamPad_final.mp4)
+
+*This GIF demonstrates ScamPad's complete chaos system in action - from normal notepad functionality to progressive text scrambling, speed-based warnings, and idle-based rapid swapping*
 
 
 ## Team Contributions
