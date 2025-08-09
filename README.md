@@ -203,7 +203,7 @@ TabData
 - 5% Random spaces
 - 2% Random indentation
 
-# Screenshots (Add at least 3)
+# Screenshots
 ![Initial State](Screenshots/initial_state.png)
 *ScamPad's clean interface on startup - appears as a normal notepad application with multiple tabs, file operations, and a professional layout*
 
