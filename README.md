@@ -1,7 +1,7 @@
 <img width="3188" height="1202" alt="frame (3)" src="https://github.com/user-attachments/assets/517ad8e9-ad22-457d-9538-a9e62d137cd7" />
 
 
-# SCAMPAD 🎯
+# ScamPad 🎯
 
 
 ## Basic Details
@@ -16,7 +16,7 @@
 "ScamPad" could be envisioned as a notepad application that looks normal but gradually scrambles, distorts, or modifies saved notes subtly (and sometimes not so subtly) over time!
 
 ### The Problem (that doesn't exist)
-Notepad app are quite simple and convenient to use, but that's no fun right? 
+Notepad app is quite simple and convenient to use, but that's no fun right? 
 
 ### The Solution (that nobody asked for)
 Give it a little personality and it'll help you "rephrase" your notes really well.
@@ -27,7 +27,7 @@ For Software:
 - Dart, C++
 - Flutter, Material Design 3
 - flutter/material.dart, flutter/services.dart, file_picker, dart:io, dart:async, dart:math
-- Visual Studio COde, Flutter SDK, CMake
+- Visual Studio Code, Flutter SDK, CMake
 
 
 
@@ -61,7 +61,7 @@ flutter run -d windows
 flutter build windows
 
 # Run executable
-./build/windows/runner/Release/vanguard.exe
+./build/windows/runner/Release/scampad.exe
 ```
 
 ### Project Documentation
@@ -204,14 +204,11 @@ TabData
 - 2% Random indentation
 
 # Screenshots (Add at least 3)
-![Screenshot1](Add screenshot 1 here with proper name)
-*Add caption explaining what this shows*
+![Initial State](Screenshots/initial_state.png)
+*ScamPad's clean interface on startup - appears as a normal notepad application with multiple tabs, file operations, and a professional layout*
 
-![Screenshot2](Add screenshot 2 here with proper name)
-*Add caption explaining what this shows*
-
-![Screenshot3](Add screenshot 3 here with proper name)
-*Add caption explaining what this shows*
+![Final State](Screenshots/final_state.png)
+*After chaos mode activation - text becomes scrambled, words are swapped and deleted, demonstrating the progressive chaos system in action*
 
 # Diagrams
 
@@ -279,14 +276,13 @@ TabData
 
 ### Project Demo
 # Video
-[Add your demo video link here]
-*Explain what the video demonstrates*
+[ScamPad Demo Video](Screenshots/ScamPad_final.mp4)
+*This video demonstrates ScamPad's complete chaos system in action - from normal notepad functionality to progressive text scrambling, speed-based warnings, and idle-based rapid swapping*
 
 
 ## Team Contributions
-- [Name 1]: [Specific contributions]
-- [Name 2]: [Specific contributions]
-- [Name 3]: [Specific contributions]
+- Jeffin Basil: Flutter app architecture, chaos system implementation, UI design, file operations
+- Adithya Manghat: Chaos algorithms, speed monitoring system, testing, documentation
 
 ---
 Made with ❤️ at TinkerHub Useless Projects 
